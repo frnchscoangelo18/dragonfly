@@ -1,4 +1,5 @@
 import { mockInventory } from "./inventory";
+import { Bot, Wifi, Network, Cpu, Zap } from "lucide-react";
 
 export type ProjectTag =
   | "Robotics"
@@ -6,6 +7,14 @@ export type ProjectTag =
   | "Power"
   | "Networking"
   | "Mechatronics";
+
+export const categoryIcons: Record<string, typeof Bot> = {
+  Robotics: Bot,
+  IoT: Wifi,
+  Networking: Network,
+  Mechatronics: Cpu,
+  Power: Zap,
+};
 
 export type ConnectionType = "power" | "signal" | "logic" | "i2c";
 

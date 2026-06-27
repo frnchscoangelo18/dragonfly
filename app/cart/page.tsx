@@ -20,18 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { allProjects, categoryIcons } from "@/lib/projects";
+import { categoryIcons } from "@/data/mock/projects";
 
 export default function CartScreen() {
-  const { items, total, itemCount } = useBom();
+  const { items, total, itemCount, projectInfo, pushedHistory, pushToCart } =
+    useBom();
   const [isListModalOpen, setIsListModalOpen] = useState(false);
-  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(allProjects[0]);
 
-  const handleProjectClick = (project: (typeof allProjects)[0]) => {
-    setSelectedProject(project);
+  const handlePushToCart = (projectName: string) => {
+    pushToCart(projectName);
     setIsListModalOpen(false);
-    setIsSummaryModalOpen(true);
   };
 
   return (
@@ -52,9 +50,25 @@ export default function CartScreen() {
           onClick={() => setIsListModalOpen(true)}
         >
           <ShoppingCart size={16} />
-          Projects
+          History
         </Button>
       </header>
+
+      {projectInfo && (
+        <div className="rounded-3xl border border-white/5 bg-surface/60 p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2">
+            Project Info
+          </p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">
+              {projectInfo.name}
+            </span>
+            <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {projectInfo.tag}
+            </span>
+          </div>
+        </div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -85,12 +99,16 @@ export default function CartScreen() {
           {items.map((c) => (
             <div
               key={c.id}
-              className="flex items-center justify-between text-sm"
+              className="flex items-center justify-between text-sm gap-2"
             >
-              <span className="min-w-0 truncate text-foreground/90">
-                {c.qty} × {c.name}
-              </span>
-              <span className="ml-3 shrink-0 font-mono tabular-nums text-muted-foreground">
+              <div className="flex-1 min-w-0 flex items-baseline truncate">
+                <span className="font-semibold shrink-0">{c.qty} ×</span>
+                <span className="truncate ml-1">{c.name}</span>
+                <span className="text-muted-foreground text-xs ml-1 shrink-0">
+                  (@₱{c.unitPrice.toFixed(2)})
+                </span>
+              </div>
+              <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
                 ₱{(c.qty * c.unitPrice).toFixed(2)}
               </span>
             </div>
@@ -119,105 +137,56 @@ export default function CartScreen() {
         Start a new project
       </Link>
 
-      {/* Modal 1: Project List */}
+      {/* Modal: History */}
       <Dialog open={isListModalOpen} onOpenChange={setIsListModalOpen}>
-        <DialogContent className="max-w-[440px] bg-surface border-white/10">
+        <DialogContent className="max-w-[360px] bg-surface border-white/10">
           <DialogHeader>
-            <DialogTitle>Recent Projects</DialogTitle>
+            <DialogTitle>Pushed History</DialogTitle>
             <DialogDescription>
-              Select a project to view its cart summary.
+              Select a previous project to view details.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 mt-4">
-            {allProjects.map((p) => (
-              <div
-                key={p.name}
-                className="flex items-center justify-between rounded-2xl bg-surface-elevated py-2 px-4 ring-1 ring-white/5"
-              >
+            {pushedHistory.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No history yet.
+              </p>
+            ) : (
+              pushedHistory.map((p) => (
                 <div
-                  className="flex flex-1 items-center justify-between cursor-pointer transition-colors hover:bg-white/5 p-2 rounded-xl"
-                  onClick={() => handleProjectClick(p)}
+                  key={p.name}
+                  className="flex items-center justify-between rounded-2xl bg-surface-elevated py-2 px-4 ring-1 ring-white/5"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      {(() => {
-                        const Icon = categoryIcons[p.tag] || Zap;
-                        return <Icon size={18} />;
-                      })()}
+                  <div className="flex flex-1 items-center justify-between transition-colors p-2 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        {(() => {
+                          const Icon = categoryIcons[p.tag] || Zap;
+                          return <Icon size={18} />;
+                        })()}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{p.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          ₱{p.cost.toFixed(2)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        ₱{p.cost.toFixed(2)}
-                      </p>
-                    </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      {p.tag}
-                    </span>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock size={12} /> {p.time}
-                    </span>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-2 rounded-full cursor-pointer text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePushToCart(p.name);
+                    }}
+                  >
+                    <ShoppingCart size={16} />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="ml-2 rounded-full text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log(`Pushing ${p.name} to distributor cart...`);
-                    setIsListModalOpen(false);
-                  }}
-                >
-                  <ShoppingCart size={16} />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal 2: Cart Summary */}
-      <Dialog open={isSummaryModalOpen} onOpenChange={setIsSummaryModalOpen}>
-        <DialogContent className="max-w-[440px] bg-surface border-white/10">
-          <DialogHeader>
-            <DialogTitle>{selectedProject.name} Summary</DialogTitle>
-            <DialogDescription>
-              Cart total: ₱{selectedProject.cost.toFixed(2)}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 mt-4">
-            <div className="flex flex-col gap-2">
-              {selectedProject.items.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <span className="text-foreground/90">
-                    {item.qty} × {item.name}
-                  </span>
-                  <div className="flex flex-col items-end">
-                    <span className="font-mono tabular-nums text-foreground/90">
-                      ₱{(item.qty * item.unitPrice).toFixed(2)}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      @ ₱{item.unitPrice.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="my-2 h-px bg-white/5" />
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">
-                Project Total
-              </span>
-              <span className="font-mono text-lg font-semibold tabular-nums">
-                ₱{selectedProject.cost.toFixed(2)}
-              </span>
-            </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

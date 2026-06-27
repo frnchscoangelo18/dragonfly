@@ -1,3 +1,4 @@
+"use client"
 import {
   createContext,
   useContext,
@@ -9,24 +10,36 @@ import { type Component } from "./data";
 import { recentProjects } from "@/data/mock/projects";
 import { mockInventory } from "@/data/mock/inventory";
 
+import { type ProjectSummary } from "@/lib/projects";
+// ...
 interface BomStore {
   items: Component[];
   total: number;
   itemCount: number;
+  projectInfo: { name: string; tag: string } | null;
+  pushedHistory: ProjectSummary[];
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
   swap: (id: string, next: Omit<Component, "qty">) => void;
   loadProject: (projectName: string) => void;
+  pushToCart: (projectName: string) => void;
 }
 
 const Ctx = createContext<BomStore | null>(null);
 
 export function BomProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Component[]>([]);
+  const [projectInfo, setProjectInfo] = useState<{
+    name: string;
+    tag: string;
+  } | null>(null);
+  const [pushedHistory, setPushedHistory] = useState<ProjectSummary[]>([]);
 
   const loadProject = (projectName: string) => {
     const project = recentProjects.find((p) => p.name === projectName);
     if (!project) return;
+
+    setProjectInfo({ name: project.name, tag: project.tag });
 
     const components = project.nodes
       .map((node) => node.id)
@@ -36,6 +49,18 @@ export function BomProvider({ children }: { children: ReactNode }) {
     setItems(components);
   };
 
+  const pushToCart = (projectName: string) => {
+    const project = recentProjects.find((p) => p.name === projectName);
+    if (!project) return;
+    
+    // Add to history if not already present
+    if (!pushedHistory.find(p => p.name === projectName)) {
+        setPushedHistory(prev => [...prev, project]);
+    }
+    
+    loadProject(projectName);
+  };
+
   const value = useMemo<BomStore>(() => {
     const total = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
     const itemCount = items.reduce((s, i) => s + i.qty, 0);
@@ -43,6 +68,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
       items,
       total,
       itemCount,
+      projectInfo,
+      pushedHistory,
       setQty: (id, qty) =>
         setItems((prev) =>
           prev.map((i) => (i.id === id ? { ...i, qty: Math.max(0, qty) } : i)),
@@ -53,11 +80,13 @@ export function BomProvider({ children }: { children: ReactNode }) {
           prev.map((i) => (i.id === id ? { ...next, qty: i.qty } : i)),
         ),
       loadProject,
+      pushToCart
     };
-  }, [items]);
+  }, [items, projectInfo, pushedHistory]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
+// ...
 
 export function useBom() {
   const v = useContext(Ctx);

@@ -31,7 +31,7 @@ const categoryIcons: Record<string, typeof Bot> = {
   Power: Zap,
 };
 export default function BomScreen() {
-  const { items, total, itemCount, loadProject } = useBom();
+  const { items, total, itemCount, loadProject, pushToCart } = useBom();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [sub, setSub] = useState<Component | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -111,6 +111,7 @@ export default function BomScreen() {
     setTimeout(() => setCheckout("done"), 1400);
     setTimeout(() => {
       setCheckout("idle");
+      if (selectedProject) pushToCart(selectedProject);
       router.push("/cart");
     }, 2400);
   };
