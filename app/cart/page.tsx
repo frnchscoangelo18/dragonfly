@@ -16,22 +16,17 @@ import {
 import { categoryIcons } from "@/data/mock/projects";
 
 export default function CartScreen() {
-  const {
-    items,
-    total,
-    itemCount,
-    projectInfo,
-    pushedHistory,
-    moveToLastCart,
-  } = useBom();
+  const { pushedHistory, moveToLastCart } = useBom();
   const [isListModalOpen, setIsListModalOpen] = useState(false);
+
+  const lastCart = pushedHistory[pushedHistory.length - 1];
 
   const handleMoveToLastCart = (index: number) => {
     moveToLastCart(index);
     setIsListModalOpen(false);
   };
 
-  if (pushedHistory.length === 0) {
+  if (!lastCart) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-5 pt-14 pb-48 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-surface/60 text-muted-foreground">
@@ -73,21 +68,19 @@ export default function CartScreen() {
         </Button>
       </header>
 
-      {projectInfo && (
-        <div className="rounded-3xl border border-white/5 bg-surface/60 p-4">
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2">
-            Project Info
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-foreground">
-              {projectInfo.name}
-            </span>
-            <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-              {projectInfo.tag}
-            </span>
-          </div>
+      <div className="rounded-3xl border border-white/5 bg-surface/60 p-4">
+        <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-2">
+          Project Info
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold text-foreground">
+            {lastCart.name}
+          </span>
+          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {lastCart.tag}
+          </span>
         </div>
-      )}
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -102,7 +95,8 @@ export default function CartScreen() {
             Synced with DigiKey
           </p>
           <p className="text-[11px] text-foreground/70">
-            {itemCount} units · ready in your distributor cart
+            {lastCart.items.reduce((sum, item) => sum + item.qty, 0)} units · ready
+            in your distributor cart
           </p>
         </div>
       </motion.div>
@@ -115,7 +109,7 @@ export default function CartScreen() {
           <Package size={14} className="text-muted-foreground" />
         </div>
         <div className="flex flex-col gap-2">
-          {items.map((c) => (
+          {lastCart.items.map((c) => (
             <div
               key={c.id}
               className="flex items-center justify-between text-sm gap-2"
@@ -128,7 +122,7 @@ export default function CartScreen() {
                 </span>
               </div>
               <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
-                ₱{(c.qty * c.unitPrice).toFixed(2)}
+                ₱{c.qtyPrice.toFixed(2)}
               </span>
             </div>
           ))}
@@ -137,7 +131,7 @@ export default function CartScreen() {
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">Total</span>
           <span className="font-mono text-lg font-semibold tabular-nums">
-            ₱{total.toFixed(2)}
+            ₱{lastCart.totalPrice.toFixed(2)}
           </span>
         </div>
       </div>
@@ -155,6 +149,7 @@ export default function CartScreen() {
       >
         Start a new project
       </Link>
+
 
       {/* Modal: History */}
       <Dialog open={isListModalOpen} onOpenChange={setIsListModalOpen}>

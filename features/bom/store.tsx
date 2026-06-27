@@ -25,7 +25,7 @@ interface BomStore {
   remove: (id: string) => void;
   swap: (id: string, next: Omit<Component, "qty">) => void;
   loadProject: (projectName: string) => void;
-  pushToCart: (projectName?: string, skipHistory?: boolean) => void;
+  pushToCart: (summary: Omit<ProjectCartSummary, 'totalPrice'>) => void;
   moveToLastCart: (index: number) => void;
 }
 
@@ -52,40 +52,14 @@ export function BomProvider({ children }: { children: ReactNode }) {
 
     setItems(components);
   };
-
   const pushToCart = useCallback(
-    (projectName?: string) => {
-      let info = projectInfo;
-      let itemsToUse = items;
-
-      if (projectName) {
-        const project = recentProjects.find((p) => p.name === projectName);
-        if (!project) return;
-
-        info = { name: project.name, tag: project.tag };
-
-        itemsToUse = project.nodes
-          .map((node) => node.id)
-          .map((id) => mockInventory.find((item) => item.id === id))
-          .filter((item): item is Component => !!item);
-      }
-
-      if (!info) return;
-
-      const summary = calculateProjectCartSummary(
-        info.name,
-        info.tag,
-        itemsToUse,
-      );
-      setPushedHistory((prev) => [...prev, summary]);
-
-      // Update active state to reflect the pushed/loaded project
-      setProjectInfo(info);
-      setItems(itemsToUse);
+    (summary: Omit<ProjectCartSummary, 'totalPrice'>) => {
+      const totalPrice = summary.items.reduce((s, i) => s + i.qtyPrice, 0);
+      const fullSummary: ProjectCartSummary = { ...summary, totalPrice };
+      setPushedHistory((prev) => [...prev, fullSummary]);
     },
-    [items, projectInfo],
+    [],
   );
-
   const moveToLastCart = useCallback(
     (index: number) =>
       setPushedHistory((prev) => {

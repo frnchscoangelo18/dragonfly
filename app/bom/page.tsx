@@ -21,6 +21,9 @@ import { SubstituteSheet } from "../../features/bom/SubstituteSheet";
 import { compatibilityAlerts, type Component } from "../../features/bom/data";
 import { useRouter, useSearchParams } from "next/navigation";
 import { recentProjects } from "@/data/mock/projects";
+import {
+  type ProjectCartSummary,
+} from "@/lib/project-calculator";
 import { cn } from "@/lib/utils";
 
 const categoryIcons: Record<string, typeof Bot> = {
@@ -111,7 +114,22 @@ export default function BomScreen() {
     setTimeout(() => setCheckout("done"), 1400);
     setTimeout(() => {
       setCheckout("idle");
-      if (selectedProject) pushToCart();
+      if (selectedProject) {
+        const project = recentProjects.find((p) => p.name === selectedProject);
+        if (project) {
+          const summary: Omit<ProjectCartSummary, 'totalPrice'> = {
+            id: `${project.name}-${Date.now()}`,
+            name: project.name,
+            tag: project.tag,
+            timestamp: new Date().toLocaleString(),
+            items: items.map((item) => ({
+              ...item,
+              qtyPrice: item.unitPrice * item.qty,
+            })),
+          };
+          pushToCart(summary);
+        }
+      }
       router.push("/cart");
     }, 2400);
   };
