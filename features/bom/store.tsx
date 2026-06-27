@@ -14,6 +14,7 @@ import { type ProjectSummary } from "@/lib/projects";
 // ...
 interface BomStore {
   items: Component[];
+  alerts: any[];
   total: number;
   itemCount: number;
   projectInfo: { name: string; tag: string } | null;
@@ -22,6 +23,7 @@ interface BomStore {
   remove: (id: string) => void;
   swap: (id: string, next: Omit<Component, "qty">) => void;
   loadProject: (projectName: string) => void;
+  loadDynamicProject: (projectName: string, newItems: Component[], newAlerts?: any[]) => void;
   pushToCart: (projectName: string) => void;
 }
 
@@ -29,6 +31,7 @@ const Ctx = createContext<BomStore | null>(null);
 
 export function BomProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Component[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
     tag: string;
@@ -47,6 +50,13 @@ export function BomProvider({ children }: { children: ReactNode }) {
       .filter((item): item is Component => !!item);
 
     setItems(components);
+    setAlerts([]); // Clear dynamic alerts when loading mock
+  };
+
+  const loadDynamicProject = (projectName: string, newItems: Component[], newAlerts: any[] = []) => {
+    setProjectInfo({ name: projectName, tag: "AI Generated" });
+    setItems(newItems);
+    setAlerts(newAlerts);
   };
 
   const pushToCart = (projectName: string) => {
@@ -80,9 +90,10 @@ export function BomProvider({ children }: { children: ReactNode }) {
           prev.map((i) => (i.id === id ? { ...next, qty: i.qty } : i)),
         ),
       loadProject,
+      loadDynamicProject,
       pushToCart
     };
-  }, [items, projectInfo, pushedHistory]);
+  }, [items, alerts, projectInfo, pushedHistory]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

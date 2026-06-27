@@ -31,7 +31,7 @@ const categoryIcons: Record<string, typeof Bot> = {
   Power: Zap,
 };
 export default function BomScreen() {
-  const { items, total, itemCount, loadProject, pushToCart } = useBom();
+  const { items, alerts, total, itemCount, loadProject, pushToCart } = useBom();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [sub, setSub] = useState<Component | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -43,7 +43,7 @@ export default function BomScreen() {
   const prompt = searchParams?.get("prompt");
 
   useEffect(() => {
-    if (generate === "true" && prompt) {
+    if ((generate === "true" || generate === "dynamic") && prompt) {
       setSelectedProject(decodeURIComponent(prompt));
     }
   }, [generate, prompt, setSelectedProject]);
@@ -143,7 +143,7 @@ export default function BomScreen() {
         {/* Compatibility alert */}
         <AnimatePresence>
           {!alertDismissed &&
-            (items.every((i) => i.stock === "in-stock") ? (
+            (items.length > 0 && items.every((i) => i.stock === "in-stock") && alerts.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -170,6 +170,7 @@ export default function BomScreen() {
               </motion.div>
             ) : (
               [
+                ...alerts, // Dynamic alerts from context
                 ...compatibilityAlerts.filter(
                   (a) =>
                     !a.componentId ||
@@ -186,17 +187,26 @@ export default function BomScreen() {
                   })),
               ].map((a) => (
                 <motion.div
-                  key={a.id}
+                  key={a.id || a.title}
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-3"
+                  className={cn(
+                    "flex items-start gap-3 rounded-2xl border p-3",
+                    a.severity === "warning" ? "border-warning/30 bg-warning/10" : "border-blue-500/30 bg-blue-500/10"
+                  )}
                 >
-                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning/20">
-                    <AlertTriangle size={14} className="text-warning" />
+                  <div className={cn(
+                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                    a.severity === "warning" ? "bg-warning/20" : "bg-blue-500/20"
+                  )}>
+                    <AlertTriangle size={14} className={a.severity === "warning" ? "text-warning" : "text-blue-500"} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-warning">
+                    <p className={cn(
+                      "text-xs font-semibold",
+                      a.severity === "warning" ? "text-warning" : "text-blue-500"
+                    )}>
                       {a.title}
                     </p>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">

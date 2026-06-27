@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useBom } from "@/features/bom/store";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -43,16 +44,43 @@ export default function Home() {
   const [showTip, setShowTip] = useState(false);
   const router = useRouter();
 
-  const handleGenerate = () => {
-    if (prompt.trim() === "") {
+  const { loadDynamicProject } = useBom();
+
+  const handleGenerate = async () => {
+    if (prompt.trim() === "" && selectedFiles.length === 0) {
       setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
       return;
     }
+    
     setIsLoading(true);
-    setTimeout(() => {
-      router.push(`/bom?generate=true&prompt=${encodeURIComponent(prompt)}`);
-    }, 2000);
+    try {
+      const formData = new FormData();
+      if (prompt) formData.append("prompt", prompt);
+      if (selectedFiles.length > 0) {
+        formData.append("image", selectedFiles[0].file);
+      }
+
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to generate BOM from API");
+
+      const data = await res.json();
+      
+      const projectName = prompt ? prompt : "Extracted Schematic";
+      loadDynamicProject(projectName, data.items, data.alerts);
+      
+      router.push(`/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`);
+    } catch (e) {
+      console.error(e);
+      setShowTip(true); // Fallback error handling
+      setTimeout(() => setShowTip(false), 3000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const [isDragging, setIsDragging] = useState(false);
