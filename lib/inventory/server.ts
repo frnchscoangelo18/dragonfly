@@ -1,13 +1,30 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { Component } from "./types";
+import { Component, StockStatus } from "./types";
 
 const DATA_PATH = path.join(process.cwd(), "data", "inventory.json");
+
+function mapStockStatus(stock: string): StockStatus {
+  switch (stock) {
+    case "in-stock":
+      return StockStatus.IN_STOCK;
+    case "low":
+      return StockStatus.LOW;
+    case "out":
+      return StockStatus.OUT;
+    default:
+      return StockStatus.OUT; // Default to OUT if unknown
+  }
+}
 
 async function readInventory(): Promise<Component[]> {
   try {
     const data = await fs.readFile(DATA_PATH, "utf-8");
-    return JSON.parse(data);
+    const components = JSON.parse(data);
+    return components.map((c: any) => ({
+      ...c,
+      stock: mapStockStatus(c.stock),
+    }));
   } catch (error) {
     if ((error as any).code === "ENOENT") {
       return [];

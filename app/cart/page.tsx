@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { categoryIcons } from "@/data/mock/projects";
+import { ProjectCost } from "@/components/ProjectCost";
 
 export default function CartScreen() {
   const { pushedHistory, moveToLastCart } = useBom();
@@ -95,8 +96,8 @@ export default function CartScreen() {
             Synced with DigiKey
           </p>
           <p className="text-[11px] text-foreground/70">
-            {lastCart.items.reduce((sum, item) => sum + item.qty, 0)} units · ready
-            in your distributor cart
+            {lastCart.items.reduce((sum, item) => sum + item.qty, 0)} units ·
+            ready in your distributor cart
           </p>
         </div>
       </motion.div>
@@ -150,7 +151,6 @@ export default function CartScreen() {
         Start a new project
       </Link>
 
-
       {/* Modal: History */}
       <Dialog open={isListModalOpen} onOpenChange={setIsListModalOpen}>
         <DialogContent className="max-w-[360px] bg-surface border-white/10">
@@ -182,7 +182,7 @@ export default function CartScreen() {
                       <div>
                         <p className="text-sm font-medium">{p.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          ₱{p.totalPrice.toFixed(2)}
+                          <ProjectCost project={p} />
                         </p>
                       </div>
                     </div>

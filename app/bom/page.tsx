@@ -15,16 +15,16 @@ import {
   Network,
   Cpu,
 } from "lucide-react";
-import { useBom } from "../../features/bom/store";
-import { ComponentCard } from "../../features/bom/ComponentCard";
-import { SubstituteSheet } from "../../features/bom/SubstituteSheet";
-import { compatibilityAlerts, type Component } from "../../features/bom/data";
+import { useBom } from "@/features/bom/store";
+import { ComponentCard } from "@/features/bom/ComponentCard";
+import { SubstituteSheet } from "@/features/bom/SubstituteSheet";
+import { compatibilityAlerts } from "@/features/bom/data";
 import { useRouter, useSearchParams } from "next/navigation";
 import { recentProjects } from "@/data/mock/projects";
-import {
-  type ProjectCartSummary,
-} from "@/lib/project-calculator";
+import { type ProjectCartSummary } from "@/lib/project-calculator";
+import { ProjectCost } from "@/components/ProjectCost";
 import { cn } from "@/lib/utils";
+import { Component, StockStatus } from "@/lib/inventory/types";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -33,6 +33,51 @@ const categoryIcons: Record<string, typeof Bot> = {
   Mechatronics: Cpu,
   Power: Zap,
 };
+
+function ProjectItem({
+  project,
+  onSelect,
+}: {
+  project: (typeof recentProjects)[0];
+  onSelect: (name: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelect(project.name)}
+      className="group flex items-center justify-between rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5 transition-all hover:bg-surface-elevated hover:ring-primary/40 hover:shadow-[0_0_20px_-5px_var(--primary)]"
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          {(() => {
+            const Icon = categoryIcons[project.tag] || Zap;
+            return <Icon size={18} />;
+          })()}
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-medium">{project.name}</p>
+          <p className="text-xs text-muted-foreground">
+            <ProjectCost project={project} />
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="flex flex-col items-end gap-1">
+          <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+            {project.tag}
+          </span>
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock size={12} /> {project.time}
+          </span>
+        </div>
+        <ArrowRight
+          size={18}
+          className="text-muted-foreground group-hover:text-primary transition-colors"
+        />
+      </div>
+    </button>
+  );
+}
+
 export default function BomScreen() {
   const { items, alerts, total, itemCount, loadProject, pushToCart } = useBom();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
@@ -69,40 +114,11 @@ export default function BomScreen() {
         </header>
         <div className="flex flex-col gap-3">
           {recentProjects.map((p) => (
-            <button
+            <ProjectItem
               key={p.name}
-              onClick={() => handleSelectProject(p.name)}
-              className="group flex items-center justify-between rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5 transition-all hover:bg-surface-elevated hover:ring-primary/40 hover:shadow-[0_0_20px_-5px_var(--primary)]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  {(() => {
-                    const Icon = categoryIcons[p.tag] || Zap;
-                    return <Icon size={18} />;
-                  })()}
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    ₱{p.cost.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col items-end gap-1">
-                  <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {p.tag}
-                  </span>
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock size={12} /> {p.time}
-                  </span>
-                </div>
-                <ArrowRight
-                  size={18}
-                  className="text-muted-foreground group-hover:text-primary transition-colors"
-                />
-              </div>
-            </button>
+              project={p}
+              onSelect={handleSelectProject}
+            />
           ))}
         </div>
       </div>
@@ -115,9 +131,9 @@ export default function BomScreen() {
     setTimeout(() => {
       setCheckout("idle");
       if (selectedProject) {
-        let project = recentProjects.find((p) => p.name === selectedProject);
+        const project = recentProjects.find((p) => p.name === selectedProject);
         if (project) {
-          const summary: Omit<ProjectCartSummary, 'totalPrice'> = {
+          const summary: Omit<ProjectCartSummary, "totalPrice"> = {
             id: `${project.name}-${Date.now()}`,
             name: project.name,
             tag: project.tag,
@@ -130,7 +146,7 @@ export default function BomScreen() {
           pushToCart(summary);
         } else if (items.length > 0) {
           // Dynamic AI Project
-          const summary: Omit<ProjectCartSummary, 'totalPrice'> = {
+          const summary: Omit<ProjectCartSummary, "totalPrice"> = {
             id: `dynamic-${Date.now()}`,
             name: selectedProject,
             tag: "AI Generated",
@@ -174,7 +190,9 @@ export default function BomScreen() {
         {/* Compatibility alert */}
         <AnimatePresence>
           {!alertDismissed &&
-            (items.length > 0 && items.every((i) => i.stock === "in-stock") && alerts.length === 0 ? (
+            (items.length > 0 &&
+            items.every((i) => i.stock === StockStatus.IN_STOCK) &&
+            alerts.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -208,7 +226,7 @@ export default function BomScreen() {
                     items.some((item) => item.id === a.componentId),
                 ),
                 ...items
-                  .filter((i) => i.stock === "out")
+                  .filter((i) => i.stock === StockStatus.OUT)
                   .map((i) => ({
                     id: `stock-${i.id}`,
                     severity: "warning" as const,
@@ -224,20 +242,37 @@ export default function BomScreen() {
                   exit={{ opacity: 0, height: 0 }}
                   className={cn(
                     "flex items-start gap-3 rounded-2xl border p-3",
-                    a.severity === "warning" ? "border-warning/30 bg-warning/10" : "border-blue-500/30 bg-blue-500/10"
+                    a.severity === "warning"
+                      ? "border-warning/30 bg-warning/10"
+                      : "border-blue-500/30 bg-blue-500/10",
                   )}
                 >
-                  <div className={cn(
-                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
-                    a.severity === "warning" ? "bg-warning/20" : "bg-blue-500/20"
-                  )}>
-                    <AlertTriangle size={14} className={a.severity === "warning" ? "text-warning" : "text-blue-500"} />
+                  <div
+                    className={cn(
+                      "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                      a.severity === "warning"
+                        ? "bg-warning/20"
+                        : "bg-blue-500/20",
+                    )}
+                  >
+                    <AlertTriangle
+                      size={14}
+                      className={
+                        a.severity === "warning"
+                          ? "text-warning"
+                          : "text-blue-500"
+                      }
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={cn(
-                      "text-xs font-semibold",
-                      a.severity === "warning" ? "text-warning" : "text-blue-500"
-                    )}>
+                    <p
+                      className={cn(
+                        "text-xs font-semibold",
+                        a.severity === "warning"
+                          ? "text-warning"
+                          : "text-blue-500",
+                      )}
+                    >
                       {a.title}
                     </p>
                     <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">
@@ -296,7 +331,7 @@ export default function BomScreen() {
             </div>
             {(() => {
               const hasIssues =
-                items.some((i) => i.stock === "out") ||
+                items.some((i) => i.stock === StockStatus.OUT) ||
                 compatibilityAlerts.some(
                   (a) =>
                     !a.componentId ||

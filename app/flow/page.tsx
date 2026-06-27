@@ -25,7 +25,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Image, ChevronDown } from "lucide-react";
 import { recentProjects, edgeColors } from "@/data/mock/projects";
-import { mockInventory } from "@/data/mock/inventory";
+import { fetchComponents } from "@/lib/inventory/client";
+import { Component } from "@/lib/inventory/types";
 
 interface ComponentNode {
   id: string;
@@ -88,11 +89,18 @@ const nodeTypes = { custom: CustomNode };
 export default function FlowScreen() {
   const [selected, setSelected] = useState<ComponentNode | null>(null);
   const [currentProject, setCurrentProject] = useState(projects[0]);
+  const [inventory, setInventory] = useState<Component[]>([]);
+
+  useEffect(() => {
+    fetchComponents()
+      .then(setInventory)
+      .catch((err) => console.error("Failed to load inventory for flow:", err));
+  }, []);
 
   // 1. Compute nodes and edges once whenever currentProject changes
   const { nodes: projectNodes, edges: projectEdges } = useMemo(() => {
     const nodes = currentProject.nodes.map((node) => {
-      const comp = mockInventory.find((item) => item.id === node.id);
+      const comp = inventory.find((item) => item.id === node.id);
       return {
         id: node.id,
         label: comp?.name || "Unknown",
@@ -112,7 +120,9 @@ export default function FlowScreen() {
     }));
 
     return { nodes, edges };
-  }, [currentProject]);
+  }, [currentProject, inventory]);
+
+  // 2. Initialize React Flow states with the computed values
 
   // 2. Initialize React Flow states with the computed values
   const [nodes, setNodes, onNodesChange] = useNodesState(

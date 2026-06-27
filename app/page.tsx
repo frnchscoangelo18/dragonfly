@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Camera,
@@ -21,6 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { recentProjects } from "@/data/mock/projects";
+import { ProjectCost } from "@/components/ProjectCost";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -31,6 +32,7 @@ const categoryIcons: Record<string, typeof Bot> = {
 };
 
 const suggestions = [
+
   "5V line-following robot with a higher voltage buzzer",
   "ESP32 weather station, OLED + BME280",
   "Bluetooth audio amp, 2x3W class-D",
@@ -52,7 +54,7 @@ export default function Home() {
       setTimeout(() => setShowTip(false), 3000);
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const formData = new FormData();
@@ -69,11 +71,13 @@ export default function Home() {
       if (!res.ok) throw new Error("Failed to generate BOM from API");
 
       const data = await res.json();
-      
+
       const projectName = prompt ? prompt : "Extracted Schematic";
       loadDynamicProject(projectName, data.items, data.alerts);
-      
-      router.push(`/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`);
+
+      router.push(
+        `/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`,
+      );
     } catch (e) {
       console.error(e);
       setShowTip(true); // Fallback error handling
@@ -297,7 +301,7 @@ export default function Home() {
                 <div className="text-left">
                   <p className="text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    ₱{p.cost.toFixed(2)}
+                    <ProjectCost project={p} />
                   </p>
                 </div>
               </div>

@@ -1,4 +1,3 @@
-import { mockInventory } from "./inventory";
 import { Bot, Wifi, Network, Cpu, Zap } from "lucide-react";
 
 export type ProjectTag =
@@ -52,12 +51,7 @@ export interface ProjectDefinition {
   substitutes?: Record<string, string[]>;
 }
 
-export interface ProjectSummary extends ProjectDefinition {
-  cost: number;
-}
-
-// 5. The Projects with Perfected Handle-Aligned Coordinates
-const baseProjects: ProjectDefinition[] = [
+export const recentProjects: ProjectDefinition[] = [
   {
     id: "proj_01",
     name: "Line-Following Robot",
@@ -353,22 +347,3 @@ const baseProjects: ProjectDefinition[] = [
     substitutes: {},
   },
 ];
-
-const generateDynamicProjects = (): ProjectSummary[] => {
-  return baseProjects.map((project) => {
-    const calculatedCost = project.nodes.reduce((sum, node) => {
-      const inventoryItem = mockInventory.find((item) => item.id === node.id);
-      if (inventoryItem) {
-        return sum + inventoryItem.unitPrice * inventoryItem.qty;
-      }
-      return sum;
-    }, 0);
-
-    return {
-      ...project,
-      cost: calculatedCost,
-    };
-  });
-};
-
-export const recentProjects = generateDynamicProjects();

@@ -20,19 +20,24 @@ export enum MountType {
 
 export interface ComponentDetails {
   componentId: string;
+  // Universal
   mounting: MountType;
   package: string;
   voltageMin: number;
   voltageMax: number;
+  // Passive
   primaryValue?: string;
   powerRating?: string;
   tolerance?: string;
+  // Semiconductor
   forwardVoltage?: string;
   maxCurrent?: string;
   thresholdVoltage?: string;
+  // IC
   logicFamily?: string;
   ioVoltage?: number;
   pinCount?: number;
+  // Electromechanical
   nominalVoltage?: number;
   currentDraw?: string;
   contactRating?: string;

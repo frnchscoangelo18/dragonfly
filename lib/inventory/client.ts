@@ -14,7 +14,9 @@ export async function fetchComponent(id: string): Promise<Component> {
   return res.json();
 }
 
-export async function createComponent(component: Component): Promise<Component> {
+export async function createComponent(
+  component: Component,
+): Promise<Component> {
   const res = await fetch(API_BASE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -26,7 +28,7 @@ export async function createComponent(component: Component): Promise<Component> 
 
 export async function updateComponent(
   id: string,
-  component: Partial<Component>
+  component: Partial<Component>,
 ): Promise<Component> {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PUT",
