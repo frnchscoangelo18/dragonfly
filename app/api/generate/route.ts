@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     // 2. Call Gemini for Nodal Computation & Extraction
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-pro",
+      model: "gemini-2.5-flash",
       contents: contents,
       config: {
         systemInstruction: `You are an expert Electronics Engineer and System Architect. Your task is to analyze the provided electronic schematic image alongside the user's natural language description.
@@ -49,7 +49,7 @@ CRITICAL INSTRUCTIONS:
     });
 
     // Parse the structured JSON response
-    const extraction = JSON.parse(response.text() || "{}");
+    const extraction = JSON.parse(response.text || "{}");
     const extractedItems = extraction.items || [];
     
     // 3. Pricing Engine Logic
