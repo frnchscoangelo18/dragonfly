@@ -1,0 +1,337 @@
+[
+  {
+    "id": "comp_mcu_01",
+    "name": "Arduino Nano",
+    "partNumber": "ATMEGA328P-NANO",
+    "specs": "5V · 16MHz · 22 GPIO",
+    "unitPrice": 516.2,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 150,
+    "category": "MCU",
+    "pins": ["D0", "D1", "D2", "5V", "GND", "VIN"],
+    "details": {
+      "componentId": "comp_mcu_01",
+      "mounting": "THROUGH_HOLE",
+      "package": "DIP-30 Breakout",
+      "voltageMin": 5.0,
+      "voltageMax": 12.0,
+      "ioVoltage": 5.0,
+      "pinCount": 30
+    }
+  },
+  {
+    "id": "comp_sns_01",
+    "name": "IR Reflectance Array",
+    "partNumber": "QTR-8RC",
+    "specs": "8-ch · digital · 3-5V",
+    "unitPrice": 725.0,
+    "qty": 1,
+    "stock": "OUT",
+    "stockCount": 0,
+    "category": "Sensor",
+    "pins": [],
+    "details": {
+      "componentId": "comp_sns_01",
+      "mounting": "THROUGH_HOLE",
+      "package": "Breakout 8-pin",
+      "voltageMin": 3.3,
+      "voltageMax": 5.0,
+      "ioVoltage": 5.0,
+      "pinCount": 11
+    }
+  },
+  {
+    "id": "comp_act_01",
+    "name": "Dual Motor Driver",
+    "partNumber": "TB6612FNG",
+    "specs": "Dual H-bridge · 1.2A",
+    "unitPrice": 275.5,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 85,
+    "category": "Actuator",
+    "pins": [],
+    "details": {
+      "componentId": "comp_act_01",
+      "mounting": "THROUGH_HOLE",
+      "package": "Breakout 16-pin",
+      "voltageMin": 2.5,
+      "voltageMax": 13.5,
+      "logicFamily": "CMOS",
+      "pinCount": 16
+    }
+  },
+  {
+    "id": "comp_act_02",
+    "name": "Micro Gear Motor",
+    "partNumber": "DG01D-E",
+    "specs": "6V · 200 RPM · 1:48",
+    "unitPrice": 185.6,
+    "qty": 2,
+    "stock": "IN_STOCK",
+    "stockCount": 310,
+    "category": "Actuator",
+    "pins": [],
+    "details": {
+      "componentId": "comp_act_02",
+      "mounting": "THROUGH_HOLE",
+      "package": "TT Motor",
+      "voltageMin": 3.0,
+      "voltageMax": 6.0,
+      "nominalVoltage": 6.0,
+      "currentDraw": "250 mA stall"
+    }
+  },
+  {
+    "id": "comp_pwr_01",
+    "name": "Li-Ion Battery Pack",
+    "partNumber": "18650-2S",
+    "specs": "7.4V · 2600mAh · JST",
+    "unitPrice": 823.6,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 55,
+    "category": "Power",
+    "pins": [],
+    "details": {
+      "componentId": "comp_pwr_01",
+      "mounting": "THROUGH_HOLE",
+      "package": "Battery Pack",
+      "voltageMin": 6.0,
+      "voltageMax": 8.4,
+      "nominalVoltage": 7.4
+    }
+  },
+  {
+    "id": "comp_log_01",
+    "name": "Quad NAND Gate",
+    "partNumber": "SN74HC00N",
+    "specs": "2-V to 6-V · 14-DIP",
+    "unitPrice": 31.9,
+    "qty": 1,
+    "stock": "OUT",
+    "stockCount": 0,
+    "category": "Logic",
+    "pins": [],
+    "details": {
+      "componentId": "comp_log_01",
+      "mounting": "THROUGH_HOLE",
+      "package": "DIP-14",
+      "voltageMin": 2.0,
+      "voltageMax": 6.0,
+      "logicFamily": "74HC",
+      "ioVoltage": 5.0,
+      "pinCount": 14
+    }
+  },
+  {
+    "id": "comp_act_04",
+    "name": "Active Piezo Buzzer",
+    "partNumber": "HYDZ-12V",
+    "specs": "12V · 85 dB · 2.3 kHz",
+    "unitPrice": 81.2,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 65,
+    "category": "Actuator",
+    "pins": [],
+    "details": {
+      "componentId": "comp_act_04",
+      "mounting": "THROUGH_HOLE",
+      "package": "Cylindrical",
+      "voltageMin": 3.0,
+      "voltageMax": 15.0,
+      "nominalVoltage": 12.0,
+      "currentDraw": "30 mA"
+    }
+  },
+  {
+    "id": "comp_mcu_02",
+    "name": "ESP32 Dev Module",
+    "partNumber": "ESP32-WROOM-32D",
+    "specs": "WiFi/BT · 240MHz",
+    "unitPrice": 395.0,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 215,
+    "category": "MCU",
+    "pins": [],
+    "details": {
+      "componentId": "comp_mcu_02",
+      "mounting": "THROUGH_HOLE",
+      "package": "Breakout 38-pin",
+      "voltageMin": 3.0,
+      "voltageMax": 3.6,
+      "ioVoltage": 3.3,
+      "pinCount": 38
+    }
+  },
+  {
+    "id": "comp_sns_02",
+    "name": "Environmental Sensor",
+    "partNumber": "BME280",
+    "specs": "Temp/Humidity/Pressure · I2C",
+    "unitPrice": 450.0,
+    "qty": 1,
+    "stock": "OUT",
+    "stockCount": 0,
+    "category": "Sensor",
+    "pins": [],
+    "details": {
+      "componentId": "comp_sns_02",
+      "mounting": "THROUGH_HOLE",
+      "package": "Breakout 4-pin",
+      "voltageMin": 1.71,
+      "voltageMax": 3.6,
+      "ioVoltage": 3.3,
+      "pinCount": 4
+    }
+  },
+  {
+    "id": "comp_act_03",
+    "name": "0.96\" OLED Display",
+    "partNumber": "SSD1306-128X64",
+    "specs": "128x64 · I2C",
+    "unitPrice": 185.0,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 140,
+    "category": "Actuator",
+    "pins": [],
+    "details": {
+      "componentId": "comp_act_03",
+      "mounting": "THROUGH_HOLE",
+      "package": "Breakout 4-pin",
+      "voltageMin": 3.3,
+      "voltageMax": 5.0,
+      "ioVoltage": 3.3,
+      "pinCount": 4
+    }
+  },
+  {
+    "id": "comp_pwr_02",
+    "name": "Lipo Charger Module",
+    "partNumber": "TP4056",
+    "specs": "5V 1A · Micro USB",
+    "unitPrice": 35.0,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 500,
+    "category": "Power",
+    "pins": [],
+    "details": {
+      "componentId": "comp_pwr_02",
+      "mounting": "THROUGH_HOLE",
+      "package": "Breakout",
+      "voltageMin": 4.0,
+      "voltageMax": 8.0,
+      "nominalVoltage": 5.0
+    }
+  },
+  {
+    "id": "comp_pwr_04",
+    "name": "9V Battery Snap",
+    "partNumber": "BAT-SNAP-9V",
+    "specs": "9V DC · Barrel Jack / Wire",
+    "unitPrice": 12.0,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 1500,
+    "category": "Power",
+    "pins": [],
+    "details": {
+      "componentId": "comp_pwr_04",
+      "mounting": "THROUGH_HOLE",
+      "package": "Connector",
+      "voltageMin": 7.0,
+      "voltageMax": 9.6,
+      "nominalVoltage": 9.0
+    }
+  },
+  {
+    "id": "comp_sns_03",
+    "name": "PIR Motion Sensor",
+    "partNumber": "HC-SR501",
+    "specs": "Adjustable Delay · 3.3V Logic",
+    "unitPrice": 65.5,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 320,
+    "category": "Sensor",
+    "pins": [],
+    "details": {
+      "componentId": "comp_sns_03",
+      "mounting": "THROUGH_HOLE",
+      "package": "Breakout 3-pin",
+      "voltageMin": 4.5,
+      "voltageMax": 20.0,
+      "ioVoltage": 3.3,
+      "pinCount": 3
+    }
+  },
+  {
+    "id": "comp_log_02",
+    "name": "555 Timer IC",
+    "partNumber": "NE555P",
+    "specs": "Precision Timer",
+    "unitPrice": 15.0,
+    "qty": 1,
+    "stock": "IN_STOCK",
+    "stockCount": 800,
+    "category": "Logic",
+    "pins": [],
+    "details": {
+      "componentId": "comp_log_02",
+      "mounting": "THROUGH_HOLE",
+      "package": "DIP-8",
+      "voltageMin": 4.5,
+      "voltageMax": 16.0,
+      "logicFamily": "Bipolar",
+      "pinCount": 8
+    }
+  },
+  {
+    "id": "comp_pas_01",
+    "name": "Carbon Film Resistor",
+    "partNumber": "CF1/4W-10K",
+    "specs": "10 kΩ · 1/4 W",
+    "unitPrice": 2.5,
+    "qty": 5,
+    "stock": "IN_STOCK",
+    "stockCount": 5000,
+    "category": "Passive",
+    "pins": [],
+    "details": {
+      "componentId": "comp_pas_01",
+      "mounting": "THROUGH_HOLE",
+      "package": "Axial",
+      "voltageMin": 0.0,
+      "voltageMax": 250.0,
+      "primaryValue": "10 kΩ",
+      "powerRating": "1/4 W",
+      "tolerance": "±5%"
+    }
+  },
+  {
+    "id": "comp_pas_02",
+    "name": "Electrolytic Capacitor",
+    "partNumber": "ECA-1EHG101",
+    "specs": "100 µF · 25V",
+    "unitPrice": 8.0,
+    "qty": 2,
+    "stock": "IN_STOCK",
+    "stockCount": 850,
+    "category": "Passive",
+    "pins": [],
+    "details": {
+      "componentId": "comp_pas_02",
+      "mounting": "THROUGH_HOLE",
+      "package": "Radial",
+      "voltageMin": 0.0,
+      "voltageMax": 25.0,
+      "primaryValue": "100 µF",
+      "tolerance": "±20%"
+    }
+  }
+]
