@@ -1,4 +1,10 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { type Component } from "./data";
 import { recentProjects } from "@/data/mock/projects";
 import { mockInventory } from "@/data/mock/inventory";
@@ -21,11 +27,12 @@ export function BomProvider({ children }: { children: ReactNode }) {
   const loadProject = (projectName: string) => {
     const project = recentProjects.find((p) => p.name === projectName);
     if (!project) return;
-    
-    const components = project.componentIds
+
+    const components = project.nodes
+      .map((node) => node.id)
       .map((id) => mockInventory.find((item) => item.id === id))
       .filter((item): item is Component => !!item);
-      
+
     setItems(components);
   };
 
@@ -57,3 +64,4 @@ export function useBom() {
   if (!v) throw new Error("useBom outside provider");
   return v;
 }
+
