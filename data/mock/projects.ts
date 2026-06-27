@@ -6,7 +6,8 @@ export type ProjectTag =
   | "IoT"
   | "Power"
   | "Networking"
-  | "Mechatronics";
+  | "Mechatronics"
+  | "AI Generated";
 
 export const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
