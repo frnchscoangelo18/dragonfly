@@ -16,12 +16,18 @@ import {
 import { categoryIcons } from "@/data/mock/projects";
 
 export default function CartScreen() {
-  const { items, total, itemCount, projectInfo, pushedHistory, pushToCart } =
-    useBom();
+  const {
+    items,
+    total,
+    itemCount,
+    projectInfo,
+    pushedHistory,
+    moveToLastCart,
+  } = useBom();
   const [isListModalOpen, setIsListModalOpen] = useState(false);
 
-  const handlePushToCart = (projectName: string) => {
-    pushToCart(projectName, true);
+  const handleMoveToLastCart = (index: number) => {
+    moveToLastCart(index);
     setIsListModalOpen(false);
   };
 
@@ -161,14 +167,15 @@ export default function CartScreen() {
           </DialogHeader>
           <div className="flex flex-col gap-2 mt-4">
             {pushedHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No history yet.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No history yet.
+              </p>
             ) : (
-              pushedHistory.map((p) => (
+              pushedHistory.map((p, i) => (
                 <div
                   key={p.id}
                   className="flex items-center justify-between rounded-2xl bg-surface-elevated py-2 px-4 ring-1 ring-white/5"
                 >
-
                   <div className="flex flex-1 items-center justify-between transition-colors p-2 rounded-xl">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -191,7 +198,7 @@ export default function CartScreen() {
                     className="ml-2 rounded-full cursor-pointer text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handlePushToCart(p.name);
+                      handleMoveToLastCart(i);
                     }}
                   >
                     <ShoppingCart size={16} />

@@ -26,6 +26,7 @@ interface BomStore {
   swap: (id: string, next: Omit<Component, "qty">) => void;
   loadProject: (projectName: string) => void;
   pushToCart: (projectName?: string, skipHistory?: boolean) => void;
+  moveToLastCart: (index: number) => void;
 }
 
 const Ctx = createContext<BomStore | null>(null);
@@ -53,7 +54,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
   };
 
   const pushToCart = useCallback(
-    (projectName?: string, skipHistory = false) => {
+    (projectName?: string) => {
       let info = projectInfo;
       let itemsToUse = items;
 
@@ -76,16 +77,24 @@ export function BomProvider({ children }: { children: ReactNode }) {
         info.tag,
         itemsToUse,
       );
-
-      if (!skipHistory) {
-        setPushedHistory((prev) => [...prev, summary]);
-      }
+      setPushedHistory((prev) => [...prev, summary]);
 
       // Update active state to reflect the pushed/loaded project
       setProjectInfo(info);
       setItems(itemsToUse);
     },
     [items, projectInfo],
+  );
+
+  const moveToLastCart = useCallback(
+    (index: number) =>
+      setPushedHistory((prev) => {
+        if (index < 0 || index >= prev.length) return prev;
+        const item = prev[index];
+        const newHistory = prev.filter((_, i) => i !== index);
+        return [...newHistory, item];
+      }),
+    [],
   );
 
   const value = useMemo<BomStore>(() => {
@@ -108,8 +117,9 @@ export function BomProvider({ children }: { children: ReactNode }) {
         ),
       loadProject,
       pushToCart,
+      moveToLastCart,
     };
-  }, [items, projectInfo, pushedHistory, pushToCart]);
+  }, [items, projectInfo, pushedHistory, pushToCart, moveToLastCart]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
