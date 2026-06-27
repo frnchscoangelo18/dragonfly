@@ -20,16 +20,18 @@ import { ComponentCard } from "../../features/bom/ComponentCard";
 import { SubstituteSheet } from "../../features/bom/SubstituteSheet";
 import { compatibilityAlerts, type Component } from "../../features/bom/data";
 import { useRouter, useSearchParams } from "next/navigation";
+import { recentProjects } from "@/data/mock/projects";
+import { cn } from "@/lib/utils";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
   IoT: Wifi,
   Networking: Network,
   Mechatronics: Cpu,
+  Power: Zap,
 };
-
 export default function BomScreen() {
-  const { items, total, itemCount } = useBom();
+  const { items, total, itemCount, loadProject } = useBom();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [sub, setSub] = useState<Component | null>(null);
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -37,13 +39,19 @@ export default function BomScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const generate = searchParams?.get("generate");
+  const prompt = searchParams?.get("prompt");
+
   useEffect(() => {
-    const generate = searchParams.get("generate");
-    const prompt = searchParams.get("prompt");
     if (generate === "true" && prompt) {
       setSelectedProject(decodeURIComponent(prompt));
     }
-  }, [searchParams]);
+  }, [generate, prompt, setSelectedProject]);
+
+  const handleSelectProject = (projectName: string) => {
+    setSelectedProject(projectName);
+    loadProject(projectName);
+  };
 
   if (!selectedProject) {
     return (
@@ -57,29 +65,10 @@ export default function BomScreen() {
           </h1>
         </header>
         <div className="flex flex-col gap-3">
-          {[
-            {
-              name: "Line-Follower Bot",
-              time: "2d ago",
-              cost: 3387.2,
-              tag: "Robotics",
-            },
-            {
-              name: "ESP32 Weather Node",
-              time: "5d ago",
-              cost: 1983.6,
-              tag: "IoT",
-            },
-            {
-              name: "Power Electronics",
-              time: "3d ago",
-              cost: 2450.0,
-              tag: "Power",
-            },
-          ].map((p) => (
+          {recentProjects.map((p) => (
             <button
               key={p.name}
-              onClick={() => setSelectedProject(p.name)}
+              onClick={() => handleSelectProject(p.name)}
               className="group flex items-center justify-between rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5 transition-all hover:bg-surface-elevated hover:ring-primary/40 hover:shadow-[0_0_20px_-5px_var(--primary)]"
             >
               <div className="flex items-center gap-3">
@@ -153,35 +142,23 @@ export default function BomScreen() {
         {/* Compatibility alert */}
         <AnimatePresence>
           {!alertDismissed &&
-            compatibilityAlerts.map((a) => (
+            (items.every((i) => i.stock === "in-stock") ? (
               <motion.div
-                key={a.id}
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, height: 0 }}
-                className="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-3"
+                className="flex items-start gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-3"
               >
-                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning/20">
-                  <AlertTriangle size={14} className="text-warning" />
+                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/20">
+                  <Check size={14} className="text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-warning">
-                    {a.title}
+                  <p className="text-xs font-semibold text-primary">
+                    All components are in stock and compatible
                   </p>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">
-                    {a.message}
+                    Your project is ready to build.
                   </p>
-                  {a.componentId && (
-                    <button
-                      onClick={() => {
-                        const comp = items.find((i) => i.id === a.componentId);
-                        if (comp) setSub(comp);
-                      }}
-                      className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-warning underline underline-offset-2 hover:cursor-pointer"
-                    >
-                      Fix issue
-                    </button>
-                  )}
                 </div>
                 <button
                   onClick={() => setAlertDismissed(true)}
@@ -190,6 +167,62 @@ export default function BomScreen() {
                   <X size={14} />
                 </button>
               </motion.div>
+            ) : (
+              [
+                ...compatibilityAlerts.filter(
+                  (a) =>
+                    !a.componentId ||
+                    items.some((item) => item.id === a.componentId),
+                ),
+                ...items
+                  .filter((i) => i.stock === "out")
+                  .map((i) => ({
+                    id: `stock-${i.id}`,
+                    severity: "warning" as const,
+                    title: "Component out of stock",
+                    message: `${i.name} is currently unavailable.`,
+                    componentId: i.id,
+                  })),
+              ].map((a) => (
+                <motion.div
+                  key={a.id}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-3"
+                >
+                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-warning/20">
+                    <AlertTriangle size={14} className="text-warning" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-warning">
+                      {a.title}
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">
+                      {a.message}
+                    </p>
+                    {a.componentId && (
+                      <button
+                        onClick={() => {
+                          const comp = items.find(
+                            (i) => i.id === a.componentId,
+                          );
+                          if (comp) setSub(comp);
+                        }}
+                        className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-warning underline underline-offset-2 hover:cursor-pointer"
+                      >
+                        Fix issue
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setAlertDismissed(true)}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
+                  >
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              ))
             ))}
         </AnimatePresence>
 
@@ -219,52 +252,74 @@ export default function BomScreen() {
                 ₱{total.toFixed(2)}
               </motion.p>
             </div>
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleCheckout}
-              disabled={checkout !== "idle"}
-              className="glow-primary flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
-            >
-              <AnimatePresence mode="wait">
-                {checkout === "idle" && (
-                  <motion.span
-                    key="i"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center gap-2"
-                  >
-                    Push to cart <ArrowRight size={16} />
-                  </motion.span>
-                )}
-                {checkout === "loading" && (
-                  <motion.span
-                    key="l"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Loader2 size={16} className="animate-spin" /> Pushing…
-                  </motion.span>
-                )}
-                {checkout === "done" && (
-                  <motion.span
-                    key="d"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Check size={16} /> Sent
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
+            {(() => {
+              const hasIssues =
+                items.some((i) => i.stock === "out") ||
+                compatibilityAlerts.some(
+                  (a) =>
+                    !a.componentId ||
+                    items.some((item) => item.id === a.componentId),
+                );
+
+              return (
+                <motion.button
+                  whileTap={hasIssues ? {} : { scale: 0.97 }}
+                  onClick={handleCheckout}
+                  disabled={checkout !== "idle" || hasIssues}
+                  className={cn(
+                    "flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-primary-foreground",
+                    hasIssues
+                      ? "bg-muted text-muted-foreground cursor-not-allowed"
+                      : "glow-primary bg-primary",
+                  )}
+                >
+                  <AnimatePresence mode="wait">
+                    {checkout === "idle" && (
+                      <motion.span
+                        key="i"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        {hasIssues ? "Fix issues to proceed" : "Push to cart"}
+                        {!hasIssues && <ArrowRight size={16} />}
+                      </motion.span>
+                    )}
+                    {checkout === "loading" && (
+                      <motion.span
+                        key="l"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Loader2 size={16} className="animate-spin" /> Pushing…
+                      </motion.span>
+                    )}
+                    {checkout === "done" && (
+                      <motion.span
+                        key="d"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Check size={16} /> Sent
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
+              );
+            })()}
           </motion.div>
         </div>
 
-        <SubstituteSheet component={sub} onClose={() => setSub(null)} />
+        <SubstituteSheet
+          component={sub}
+          projectName={selectedProject}
+          onClose={() => setSub(null)}
+        />
       </div>
     </>
   );

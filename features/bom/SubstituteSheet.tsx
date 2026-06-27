@@ -3,17 +3,84 @@ import { ArrowLeftRight, Check, X } from "lucide-react";
 import { substitutesFor, type Component } from "./data";
 import { useBom } from "./store";
 import { useSheet } from "@/lib/sheet-context";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
+import { mockInventory } from "@/data/mock/inventory";
+import { recentProjects } from "@/data/mock/projects";
 
 export function SubstituteSheet({
   component,
+  projectName,
   onClose,
 }: {
   component: Component | null;
+  projectName: string | null;
   onClose: () => void;
 }) {
   const { swap } = useBom();
-  const subs = component ? substitutesFor[component.id] ?? [] : [];
+  
+  const project = useMemo(() => {
+    return recentProjects.find(p => p.name === projectName);
+  }, [projectName]);
+
+  // Find project-specific substitutes, explicit substitutes, or find compatible components in inventory
+  const projectSubs = useMemo(() => {
+    if (!component || !project?.substitutes) return [];
+    const substituteIds = project.substitutes[component.id] || [];
+    return substituteIds
+      .map(id => mockInventory.find(item => item.id === id))
+      .filter((item): item is Component => !!item)
+      .map(c => ({
+        id: c.id,
+        name: c.name,
+        partNumber: c.partNumber,
+        specs: c.specs,
+        unitPrice: c.unitPrice,
+        matchScore: 100, // Project-approved
+        note: "Project-approved substitute.",
+      }));
+  }, [component, project]);
+
+  const explicitSubs = component ? substitutesFor[component.id] ?? [] : [];
+  
+  const compatibleSubs = useMemo(() => {
+    if (!component || projectSubs.length > 0 || explicitSubs.length > 0) return [];
+    
+    // Find alternatives in inventory: same category, different ID, in-stock
+    return mockInventory.filter(
+      (c) =>
+        c.category === component.category &&
+        c.id !== component.id &&
+        c.stock === "in-stock"
+    ).map(c => ({
+      id: c.id,
+      name: c.name,
+      partNumber: c.partNumber,
+      specs: c.specs,
+      unitPrice: c.unitPrice,
+      matchScore: 85, // Default score for inferred substitutes
+      note: "Automatically found in-stock alternative.",
+    }));
+  }, [component, projectSubs, explicitSubs]);
+
+  const subs = projectSubs.length > 0 ? projectSubs : (explicitSubs.length > 0 ? explicitSubs : compatibleSubs);
+  
+  useEffect(() => {
+    if (subs.length === 1 && component) {
+      swap(component.id, {
+        id: subs[0].id, // Fixed: use substitute's ID
+        name: subs[0].name,
+        partNumber: subs[0].partNumber,
+        specs: subs[0].specs,
+        unitPrice: subs[0].unitPrice,
+        stock: "in-stock",
+        stockCount: 8400,
+        category: component.category,
+        pins: component.pins,
+      });
+      onClose();
+    }
+  }, [subs, component, swap, onClose]);
+
   const { setIsSheetOpen } = useSheet();
 
   useEffect(() => {
@@ -61,7 +128,7 @@ export function SubstituteSheet({
               </button>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 overflow-y-auto max-h-[70vh] pr-1">
               {subs.map((s) => (
                 <div
                   key={s.id}
@@ -87,7 +154,7 @@ export function SubstituteSheet({
                     whileTap={{ scale: 0.97 }}
                     onClick={() => {
                       swap(component.id, {
-                        id: component.id,
+                        id: s.id, // Fixed: use substitute's ID
                         name: s.name,
                         partNumber: s.partNumber,
                         specs: s.specs,

@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { recentProjects } from "@/data/mock/projects";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -34,10 +35,7 @@ const suggestions = [
   "Bluetooth audio amp, 2x3W class-D",
 ];
 
-const projects = [
-  { name: "Line-Follower Bot", time: "2d ago", cost: 3387.2, tag: "Robotics" },
-  { name: "Power Electronics", time: "3d ago", cost: 2450.0, tag: "Power" },
-];
+const projects = recentProjects.slice(0, 2);
 
 export default function Home() {
   const [prompt, setPrompt] = useState("");

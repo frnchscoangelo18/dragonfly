@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { initialBOM, type Component } from "./data";
+import { type Component } from "./data";
+import { recentProjects } from "@/data/mock/projects";
+import { mockInventory } from "@/data/mock/inventory";
 
 interface BomStore {
   items: Component[];
@@ -8,12 +10,24 @@ interface BomStore {
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
   swap: (id: string, next: Omit<Component, "qty">) => void;
+  loadProject: (projectName: string) => void;
 }
 
 const Ctx = createContext<BomStore | null>(null);
 
 export function BomProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<Component[]>(initialBOM);
+  const [items, setItems] = useState<Component[]>([]);
+
+  const loadProject = (projectName: string) => {
+    const project = recentProjects.find((p) => p.name === projectName);
+    if (!project) return;
+    
+    const components = project.componentIds
+      .map((id) => mockInventory.find((item) => item.id === id))
+      .filter((item): item is Component => !!item);
+      
+    setItems(components);
+  };
 
   const value = useMemo<BomStore>(() => {
     const total = items.reduce((s, i) => s + i.unitPrice * i.qty, 0);
@@ -31,6 +45,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
         setItems((prev) =>
           prev.map((i) => (i.id === id ? { ...next, qty: i.qty } : i)),
         ),
+      loadProject,
     };
   }, [items]);
 
