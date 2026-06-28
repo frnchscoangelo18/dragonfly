@@ -1,25 +1,30 @@
 import { Component } from "../inventory/types";
 
-export const ConnectionEnum = {
-  POWER: "power",
-  SIGNAL: "signal",
-  LOGIC: "logic",
-  I2C: "i2c",
-} as const;
+export enum ConnectionEnum {
+  POWER = "power",
+  SIGNAL = "signal",
+  LOGIC = "logic",
+  I2C = "i2c",
+}
+//   POWER: "power",
+//   SIGNAL: "signal",
+//   LOGIC: "logic",
+//   I2C: "i2c",
+// } as const;
 
-export type ConnectionType =
-  (typeof ConnectionEnum)[keyof typeof ConnectionEnum];
+// export type ConnectionType =
+//   (typeof ConnectionEnum)[keyof typeof ConnectionEnum];
 
-export const ProjectTag = {
-  ROBOTICS: "Robotics",
-  IOT: "IoT",
-  POWER: "Power",
-  NETWORKING: "Networking",
-  MECHATRONICS: "Mechatronics",
-  NA: "N/A",
-} as const;
+export enum ProjectTagEnum {
+  ROBOTICS = "Robotics",
+  IOT = "IoT",
+  POWER = "Power",
+  NETWORKING = "Networking",
+  MECHATRONICS = "Mechatronics",
+  NA = "N/A",
+}
 
-export type ProjectTagType = (typeof ProjectTag)[keyof typeof ProjectTag];
+// export type ProjectTagEnum = keyof typeof ProjectTagEnum;
 
 export interface ProjectNode {
   id: string;
@@ -34,14 +39,14 @@ export interface ProjectEdge {
   sourceHandle?: "top" | "bottom" | "left" | "right";
   targetHandle?: "top" | "bottom" | "left" | "right";
   label?: string;
-  type?: ConnectionType;
+  type?: ConnectionEnum;
 }
 
 export interface ProjectDefinition {
   id: string;
   name: string;
   time: string;
-  tag: ProjectTagType;
+  tag: ProjectTagEnum;
   nodes: ProjectNode[];
   edges: ProjectEdge[];
   substitutes?: Record<string, string[]>;
@@ -50,7 +55,7 @@ export interface ProjectDefinition {
 export interface ProjectCartSummary {
   id: string;
   name: string;
-  tag: ProjectTagType;
+  tag: ProjectTagEnum;
   timestamp: string;
   totalPrice: number;
   items: (Component & { qtyPrice: number })[];
@@ -60,7 +65,7 @@ export interface ProjectModel {
   id: string;
   name: string;
   time: string;
-  tag: ProjectTagType;
+  tag: ProjectTagEnum;
 }
 
 export interface ProjectNodeModel extends ProjectNode {

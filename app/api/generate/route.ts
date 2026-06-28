@@ -4,7 +4,7 @@ import { BomExtractionSchema } from "@/lib/schemas/bomSchema";
 import { resolveComponentPricing } from "@/lib/pricing";
 import { Component, StockStatus } from "@/lib/inventory/types";
 import { type BomAlert } from "@/features/bom/data";
-import { ProjectTagType } from "@/lib/project/types";
+import { ProjectTagEnum } from "@/lib/project/types";
 
 // Initialize Gen AI SDK
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -58,7 +58,7 @@ CRITICAL INSTRUCTIONS:
     const extraction = JSON.parse(response.text || "{}") as {
       items: Component[];
       alerts: BomAlert[];
-      tag: ProjectTagType;
+      tag: ProjectTagEnum;
     };
     const extractedItems = extraction.items || [];
 

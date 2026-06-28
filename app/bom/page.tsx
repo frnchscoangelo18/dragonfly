@@ -23,7 +23,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getAllProjects } from "@/lib/project/client";
 import {
   ProjectCartSummary,
-  ProjectTag,
+  ProjectTagEnum,
   type ProjectModel,
 } from "@/lib/project/types";
 import { ProjectCost } from "@/components/ProjectCost";
@@ -167,7 +167,7 @@ export default function BomScreen() {
           const summary: Omit<ProjectCartSummary, "totalPrice"> = {
             id: `dynamic-${Date.now()}`,
             name: selectedProject,
-            tag: ProjectTag.NA,
+            tag: ProjectTagEnum.NA,
             timestamp: new Date().toLocaleString(),
             items: items.map((item) => ({
               ...item,

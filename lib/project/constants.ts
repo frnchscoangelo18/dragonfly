@@ -7,23 +7,18 @@ import {
   type LucideIcon,
   HelpCircle,
 } from "lucide-react";
-import {
-  ConnectionEnum,
-  ProjectTag,
-  ProjectTagType,
-  type ConnectionType,
-} from "./types";
+import { ConnectionEnum, ProjectTagEnum } from "./types";
 
-export const categoryIcons: Record<ProjectTagType, LucideIcon> = {
-  [ProjectTag.ROBOTICS]: Bot,
-  [ProjectTag.IOT]: Wifi,
-  [ProjectTag.NETWORKING]: Network,
-  [ProjectTag.MECHATRONICS]: Cpu,
-  [ProjectTag.POWER]: Zap,
-  [ProjectTag.NA]: HelpCircle,
+export const categoryIcons: Record<ProjectTagEnum, LucideIcon> = {
+  [ProjectTagEnum.ROBOTICS]: Bot,
+  [ProjectTagEnum.IOT]: Wifi,
+  [ProjectTagEnum.NETWORKING]: Network,
+  [ProjectTagEnum.MECHATRONICS]: Cpu,
+  [ProjectTagEnum.POWER]: Zap,
+  [ProjectTagEnum.NA]: HelpCircle,
 };
 
-export const edgeColors: Record<ConnectionType, string> = {
+export const edgeColors: Record<ConnectionEnum, string> = {
   [ConnectionEnum.POWER]: "#ef4444",
   [ConnectionEnum.SIGNAL]: "#3b82f6",
   [ConnectionEnum.LOGIC]: "#8b5cf6",
