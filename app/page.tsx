@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Camera,
@@ -19,8 +19,9 @@ import { useRouter } from "next/navigation";
 import { useBom } from "@/features/bom/store";
 import Link from "next/link";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { recentProjects } from "@/data/mock/projects";
+import { cn, formatRelativeTime } from "@/lib/utils";
+import { getAllProjects } from "@/lib/project/client";
+import { ProjectCost } from "@/components/ProjectCost";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -36,23 +37,35 @@ const suggestions = [
   "Bluetooth audio amp, 2x3W class-D",
 ];
 
-const projects = recentProjects.slice(0, 2);
-
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showTip, setShowTip] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
   const router = useRouter();
 
   const { loadDynamicProject } = useBom();
 
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const data = await getAllProjects();
+        setProjects(data.slice(0, 2));
+      } catch (e) {
+        console.error("Failed to fetch projects", e);
+      }
+    }
+    fetchProjects();
+  }, []);
+
   const handleGenerate = async () => {
+// ...
     if (prompt.trim() === "" && selectedFiles.length === 0) {
       setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const formData = new FormData();
@@ -69,11 +82,13 @@ export default function Home() {
       if (!res.ok) throw new Error("Failed to generate BOM from API");
 
       const data = await res.json();
-      
+
       const projectName = prompt ? prompt : "Extracted Schematic";
       loadDynamicProject(projectName, data.items, data.alerts);
-      
-      router.push(`/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`);
+
+      router.push(
+        `/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`,
+      );
     } catch (e) {
       console.error(e);
       setShowTip(true); // Fallback error handling
@@ -284,7 +299,7 @@ export default function Home() {
         <div className="flex flex-col gap-2">
           {projects.map((p) => (
             <div
-              key={p.name}
+              key={p.id}
               className="flex items-center justify-between rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5"
             >
               <div className="flex items-center gap-3">
@@ -297,7 +312,7 @@ export default function Home() {
                 <div className="text-left">
                   <p className="text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    ₱{p.cost.toFixed(2)}
+                    <ProjectCost project={p} />
                   </p>
                 </div>
               </div>
@@ -306,7 +321,7 @@ export default function Home() {
                   {p.tag}
                 </span>
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock size={12} /> {p.time}
+                  <Clock size={12} /> {formatRelativeTime(p.time)}
                 </span>
               </div>
             </div>

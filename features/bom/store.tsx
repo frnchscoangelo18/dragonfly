@@ -7,13 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { type Component } from "./data";
-import { type ProjectTag, recentProjects } from "@/data/mock/projects";
-import { mockInventory } from "@/data/mock/inventory";
-import {
-  type ProjectCartSummary,
-  calculateProjectCartSummary,
-} from "@/lib/project-calculator";
+import { getAllProjects, getProjectNodes } from "@/lib/project/client";
+import { getAllComponents } from "@/lib/inventory/client";
+import { type ProjectCartSummary } from "@/lib/project-calculator";
+import { Component } from "@/lib/inventory/types";
+import { ProjectTag } from "@/lib/project/types";
 
 interface BomStore {
   items: Component[];
@@ -25,9 +23,13 @@ interface BomStore {
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
   swap: (id: string, next: Omit<Component, "qty">) => void;
-  loadProject: (projectName: string) => void;
-  loadDynamicProject: (projectName: string, newItems: Component[], newAlerts?: any[]) => void;
-  pushToCart: (summary: Omit<ProjectCartSummary, 'totalPrice'>) => void;
+  loadProject: (projectName: string) => Promise<void>;
+  loadDynamicProject: (
+    projectName: string,
+    newItems: Component[],
+    newAlerts?: any[],
+  ) => void;
+  pushToCart: (summary: Omit<ProjectCartSummary, "totalPrice">) => void;
   moveToLastCart: (index: number) => void;
 }
 
@@ -42,28 +44,35 @@ export function BomProvider({ children }: { children: ReactNode }) {
   } | null>(null);
   const [pushedHistory, setPushedHistory] = useState<ProjectCartSummary[]>([]);
 
-  const loadProject = (projectName: string) => {
-    const project = recentProjects.find((p) => p.name === projectName);
+  const loadProject = async (projectName: string) => {
+    const projects = await getAllProjects();
+    const project = projects.find((p) => p.name === projectName);
     if (!project) return;
 
     setProjectInfo({ name: project.name, tag: project.tag });
 
-    const components = project.nodes
-      .map((node) => node.id)
-      .map((id) => mockInventory.find((item) => item.id === id))
+    const nodes = await getProjectNodes(project.id);
+    const allInventory = await getAllComponents();
+    const components = nodes
+      .map((node) => node.componentId)
+      .map((id) => allInventory.find((item) => item.id === id))
       .filter((item): item is Component => !!item);
 
     setItems(components);
-    setAlerts([]); // Clear dynamic alerts when loading mock
+    setAlerts([]); // Clear dynamic alerts when loading from API
   };
 
-  const loadDynamicProject = (projectName: string, newItems: Component[], newAlerts: any[] = []) => {
+  const loadDynamicProject = (
+    projectName: string,
+    newItems: Component[],
+    newAlerts: any[] = [],
+  ) => {
     setProjectInfo({ name: projectName, tag: "AI Generated" });
     setItems(newItems);
     setAlerts(newAlerts);
   };
   const pushToCart = useCallback(
-    (summary: Omit<ProjectCartSummary, 'totalPrice'>) => {
+    (summary: Omit<ProjectCartSummary, "totalPrice">) => {
       const totalPrice = summary.items.reduce((s, i) => s + i.qtyPrice, 0);
       const fullSummary: ProjectCartSummary = { ...summary, totalPrice };
       setPushedHistory((prev) => [...prev, fullSummary]);
@@ -82,7 +91,10 @@ export function BomProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<BomStore>(() => {
-    const total = (items || []).reduce((s, i) => s + (i.unitPrice || 0) * (i.qty || 1), 0);
+    const total = (items || []).reduce(
+      (s, i) => s + (i.unitPrice || 0) * (i.qty || 1),
+      0,
+    );
     const itemCount = (items || []).reduce((s, i) => s + (i.qty || 1), 0);
     return {
       items: items || [],
@@ -100,7 +112,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
         setItems((prev) =>
           prev.map((i) => (i.id === id ? { ...next, qty: i.qty } : i)),
         ),
-      loadProject,
+      loadProject: async (name) => await loadProject(name),
       loadDynamicProject,
       pushToCart,
       moveToLastCart,
