@@ -9,16 +9,16 @@ import {
 } from "react";
 import { getAllProjects, getProjectNodes } from "@/lib/project/client";
 import { getAllComponents } from "@/lib/inventory/client";
-import { type ProjectCartSummary } from "@/lib/project-calculator";
 import { Component } from "@/lib/inventory/types";
-import { ProjectTag } from "@/lib/project/types";
+import { ProjectCartSummary, ProjectTagEnum } from "@/lib/project/types";
+import { BomAlert } from "./data";
 
 interface BomStore {
   items: Component[];
-  alerts: any[];
+  alerts: BomAlert[];
   total: number;
   itemCount: number;
-  projectInfo: { name: string; tag: ProjectTag } | null;
+  projectInfo: { name: string; tag: ProjectTagEnum } | null;
   pushedHistory: ProjectCartSummary[];
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
@@ -26,8 +26,9 @@ interface BomStore {
   loadProject: (projectName: string) => Promise<void>;
   loadDynamicProject: (
     projectName: string,
+    tag: ProjectTagEnum,
     newItems: Component[],
-    newAlerts?: any[],
+    newAlerts?: BomAlert[],
   ) => void;
   pushToCart: (summary: Omit<ProjectCartSummary, "totalPrice">) => void;
   moveToLastCart: (index: number) => void;
@@ -37,10 +38,10 @@ const Ctx = createContext<BomStore | null>(null);
 
 export function BomProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<Component[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [alerts, setAlerts] = useState<BomAlert[]>([]);
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
-    tag: ProjectTag;
+    tag: ProjectTagEnum;
   } | null>(null);
   const [pushedHistory, setPushedHistory] = useState<ProjectCartSummary[]>([]);
 
@@ -64,10 +65,11 @@ export function BomProvider({ children }: { children: ReactNode }) {
 
   const loadDynamicProject = (
     projectName: string,
+    tag: ProjectTagEnum,
     newItems: Component[],
-    newAlerts: any[] = [],
+    newAlerts: BomAlert[] = [],
   ) => {
-    setProjectInfo({ name: projectName, tag: "AI Generated" });
+    setProjectInfo({ name: projectName, tag });
     setItems(newItems);
     setAlerts(newAlerts);
   };

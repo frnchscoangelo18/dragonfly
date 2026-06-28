@@ -1,12 +1,30 @@
-export type ConnectionType = "power" | "signal" | "logic" | "i2c";
+import { Component } from "../inventory/types";
 
-export type ProjectTag =
-  | "Robotics"
-  | "IoT"
-  | "Power"
-  | "Networking"
-  | "Mechatronics"
-  | "AI Generated";
+export enum ConnectionEnum {
+  POWER = "power",
+  SIGNAL = "signal",
+  LOGIC = "logic",
+  I2C = "i2c",
+}
+//   POWER: "power",
+//   SIGNAL: "signal",
+//   LOGIC: "logic",
+//   I2C: "i2c",
+// } as const;
+
+// export type ConnectionType =
+//   (typeof ConnectionEnum)[keyof typeof ConnectionEnum];
+
+export enum ProjectTagEnum {
+  ROBOTICS = "Robotics",
+  IOT = "IoT",
+  POWER = "Power",
+  NETWORKING = "Networking",
+  MECHATRONICS = "Mechatronics",
+  NA = "N/A",
+}
+
+// export type ProjectTagEnum = keyof typeof ProjectTagEnum;
 
 export interface ProjectNode {
   id: string;
@@ -21,24 +39,33 @@ export interface ProjectEdge {
   sourceHandle?: "top" | "bottom" | "left" | "right";
   targetHandle?: "top" | "bottom" | "left" | "right";
   label?: string;
-  type?: ConnectionType;
+  type?: ConnectionEnum;
 }
 
 export interface ProjectDefinition {
   id: string;
   name: string;
   time: string;
-  tag: ProjectTag;
+  tag: ProjectTagEnum;
   nodes: ProjectNode[];
   edges: ProjectEdge[];
   substitutes?: Record<string, string[]>;
+}
+
+export interface ProjectCartSummary {
+  id: string;
+  name: string;
+  tag: ProjectTagEnum;
+  timestamp: string;
+  totalPrice: number;
+  items: (Component & { qtyPrice: number })[];
 }
 
 export interface ProjectModel {
   id: string;
   name: string;
   time: string;
-  tag: ProjectTag;
+  tag: ProjectTagEnum;
 }
 
 export interface ProjectNodeModel extends ProjectNode {
