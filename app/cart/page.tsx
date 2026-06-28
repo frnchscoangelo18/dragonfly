@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { categoryIcons } from "@/data/mock/projects";
+import { categoryIcons } from "@/lib/project/constants";
+import { ProjectCost } from "@/components/ProjectCost";
 
 export default function CartScreen() {
   const { pushedHistory, moveToLastCart } = useBom();
@@ -95,8 +96,8 @@ export default function CartScreen() {
             Synced with DigiKey
           </p>
           <p className="text-[11px] text-foreground/70">
-            {lastCart.items.reduce((sum, item) => sum + item.qty, 0)} units · ready
-            in your distributor cart
+            {lastCart.items.reduce((sum, item) => sum + item.qty, 0)} units ·
+            ready in your distributor cart
           </p>
         </div>
       </motion.div>
@@ -150,7 +151,6 @@ export default function CartScreen() {
         Start a new project
       </Link>
 
-
       {/* Modal: History */}
       <Dialog open={isListModalOpen} onOpenChange={setIsListModalOpen}>
         <DialogContent className="max-w-[360px] bg-surface border-white/10">
@@ -175,14 +175,17 @@ export default function CartScreen() {
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         {(() => {
-                          const Icon = categoryIcons[p.tag] || Zap;
+                          const Icon =
+                            categoryIcons[
+                              p.tag.toLowerCase() as keyof typeof categoryIcons
+                            ] || Zap;
                           return <Icon size={18} />;
                         })()}
                       </div>
                       <div>
                         <p className="text-sm font-medium">{p.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          ₱{p.totalPrice.toFixed(2)}
+                          <ProjectCost project={p} />
                         </p>
                       </div>
                     </div>

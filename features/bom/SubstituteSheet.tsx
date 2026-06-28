@@ -1,11 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeftRight, Check, X } from "lucide-react";
-import { substitutesFor, type Component } from "./data";
+import { substitutesFor } from "./data";
 import { useBom } from "./store";
 import { useSheet } from "@/lib/sheet-context";
-import { useEffect, useMemo } from "react";
-import { mockInventory } from "@/data/mock/inventory";
-import { recentProjects } from "@/data/mock/projects";
+import { useEffect, useMemo, useState } from "react";
+import { getAllComponents } from "@/lib/inventory/client";
+import { getAllProjects, getProjectSubstitutes } from "@/lib/project/client";
+import { Component, StockStatus } from "@/lib/inventory/types";
 
 export function SubstituteSheet({
   component,
@@ -17,19 +18,49 @@ export function SubstituteSheet({
   onClose: () => void;
 }) {
   const { swap } = useBom();
-  
-  const project = useMemo(() => {
-    return recentProjects.find(p => p.name === projectName);
-  }, [projectName]);
+  const [inventory, setInventory] = useState<Component[]>([]);
+  const [projectSubsData, setProjectSubsData] = useState<any[]>([]);
 
-  // Find project-specific substitutes, explicit substitutes, or find compatible components in inventory
+  useEffect(() => {
+    const loadInventory = async () => {
+      try {
+        const components = await getAllComponents();
+        setInventory(components);
+      } catch (err) {
+        console.error("Failed to load inventory for substitutes:", err);
+      }
+    };
+    loadInventory();
+  }, []);
+
+  useEffect(() => {
+    const loadProjectSubstitutes = async () => {
+      if (!projectName || !component) return;
+      
+      try {
+        const projects = await getAllProjects();
+        const project = projects.find(p => p.name === projectName);
+        
+        if (project) {
+          const subs = await getProjectSubstitutes(project.id);
+          const componentSubs = subs.filter(s => s.originalComponentId === component.id);
+          setProjectSubsData(componentSubs);
+        }
+      } catch (err) {
+        console.error("Failed to load project substitutes:", err);
+      }
+    };
+    loadProjectSubstitutes();
+  }, [projectName, component]);
+
   const projectSubs = useMemo(() => {
-    if (!component || !project?.substitutes) return [];
-    const substituteIds = project.substitutes[component.id] || [];
-    return substituteIds
-      .map(id => mockInventory.find(item => item.id === id))
+    if (!component || projectSubsData.length === 0 || inventory.length === 0)
+      return [];
+    
+    return projectSubsData
+      .map((sub) => inventory.find((item) => item.id === sub.substituteComponentId))
       .filter((item): item is Component => !!item)
-      .map(c => ({
+      .map((c: Component) => ({
         id: c.id,
         name: c.name,
         partNumber: c.partNumber,
@@ -38,32 +69,45 @@ export function SubstituteSheet({
         matchScore: 100, // Project-approved
         note: "Project-approved substitute.",
       }));
-  }, [component, project]);
+  }, [component, projectSubsData, inventory]);
 
-  const explicitSubs = component ? substitutesFor[component.id] ?? [] : [];
-  
+  const explicitSubs = component ? (substitutesFor[component.id] ?? []) : [];
+
   const compatibleSubs = useMemo(() => {
-    if (!component || projectSubs.length > 0 || explicitSubs.length > 0) return [];
-    
-    // Find alternatives in inventory: same category, different ID, in-stock
-    return mockInventory.filter(
-      (c) =>
-        c.category === component.category &&
-        c.id !== component.id &&
-        c.stock === "in-stock"
-    ).map(c => ({
-      id: c.id,
-      name: c.name,
-      partNumber: c.partNumber,
-      specs: c.specs,
-      unitPrice: c.unitPrice,
-      matchScore: 85, // Default score for inferred substitutes
-      note: "Automatically found in-stock alternative.",
-    }));
-  }, [component, projectSubs, explicitSubs]);
+    if (
+      !component ||
+      projectSubs.length > 0 ||
+      explicitSubs.length > 0 ||
+      inventory.length === 0
+    )
+      return [];
 
-  const subs = projectSubs.length > 0 ? projectSubs : (explicitSubs.length > 0 ? explicitSubs : compatibleSubs);
-  
+    // Find alternatives in inventory: same category, different ID, in-stock
+    return inventory
+      .filter(
+        (c) =>
+          c.category === component.category &&
+          c.id !== component.id &&
+          c.stock === StockStatus.IN_STOCK,
+      )
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        partNumber: c.partNumber,
+        specs: c.specs,
+        unitPrice: c.unitPrice,
+        matchScore: 85, // Default score for inferred substitutes
+        note: "Automatically found in-stock alternative.",
+      }));
+  }, [component, projectSubs, explicitSubs, inventory]);
+
+  const subs =
+    projectSubs.length > 0
+      ? projectSubs
+      : explicitSubs.length > 0
+        ? explicitSubs
+        : compatibleSubs;
+
   useEffect(() => {
     if (subs.length === 1 && component) {
       swap(component.id, {
@@ -72,7 +116,7 @@ export function SubstituteSheet({
         partNumber: subs[0].partNumber,
         specs: subs[0].specs,
         unitPrice: subs[0].unitPrice,
-        stock: "in-stock",
+        stock: StockStatus.IN_STOCK,
         stockCount: 8400,
         category: component.category,
         pins: component.pins,
@@ -112,7 +156,9 @@ export function SubstituteSheet({
             <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-white/15" />
             <div className="mb-5 flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-primary">Smart substitute</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-primary">
+                  Smart substitute
+                </p>
                 <h3 className="mt-1 text-xl font-semibold tracking-tight">
                   Replace {component.name}
                 </h3>
@@ -142,9 +188,15 @@ export function SubstituteSheet({
                           {s.matchScore}% match
                         </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{s.partNumber}</p>
-                      <p className="mt-2 text-xs text-foreground/80">{s.specs}</p>
-                      <p className="mt-2 text-[11px] text-muted-foreground">{s.note}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {s.partNumber}
+                      </p>
+                      <p className="mt-2 text-xs text-foreground/80">
+                        {s.specs}
+                      </p>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        {s.note}
+                      </p>
                     </div>
                     <p className="shrink-0 font-mono text-sm text-foreground">
                       ₱{s.unitPrice.toFixed(2)}
@@ -159,7 +211,7 @@ export function SubstituteSheet({
                         partNumber: s.partNumber,
                         specs: s.specs,
                         unitPrice: s.unitPrice,
-                        stock: "in-stock",
+                        stock: StockStatus.IN_STOCK,
                         stockCount: 8400,
                         category: component.category,
                         pins: component.pins,
@@ -176,7 +228,9 @@ export function SubstituteSheet({
               {subs.length === 0 && (
                 <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface/60 px-4 py-10 text-center">
                   <Check className="text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">No substitutes needed.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No substitutes needed.
+                  </p>
                 </div>
               )}
             </div>

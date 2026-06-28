@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Info, Minus, Plus, Sparkles, AlertTriangle } from "lucide-react";
 import { useState } from "react";
-import type { Component, ComponentDetails } from "./data";
 import { useBom } from "./store";
 import {
   Dialog,
@@ -10,11 +9,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Component,
+  ComponentDetails,
+  StockStatus,
+} from "@/lib/inventory/types";
 
 const stockMeta = {
-  "in-stock": { label: "In stock", className: "bg-success/15 text-success ring-success/30" },
-  low: { label: "Low stock", className: "bg-warning/15 text-warning ring-warning/30" },
-  out: { label: "Out of stock", className: "bg-destructive/15 text-destructive ring-destructive/30" },
+  [StockStatus.IN_STOCK]: {
+    label: "In stock",
+    className: "bg-success/15 text-success ring-success/30",
+  },
+  [StockStatus.LOW]: {
+    label: "Low stock",
+    className: "bg-warning/15 text-warning ring-warning/30",
+  },
+  [StockStatus.OUT]: {
+    label: "Out of stock",
+    className: "bg-destructive/15 text-destructive ring-destructive/30",
+  },
 } as const;
 
 export function ComponentCard({
@@ -25,7 +38,8 @@ export function ComponentCard({
   onFindSubstitute: (c: Component) => void;
 }) {
   const { setQty } = useBom();
-  const isOut = c.stock === "out";
+  console.log(c.stock);
+  const isOut = c.stock === StockStatus.OUT;
   const [open, setOpen] = useState(false);
 
   return (
@@ -54,7 +68,9 @@ export function ComponentCard({
         </div>
 
         <div className="flex flex-col items-end gap-2">
-          <p className="shrink-0 font-mono text-sm">₱{c.unitPrice.toFixed(2)}</p>
+          <p className="shrink-0 font-mono text-sm">
+            ₱{c.unitPrice.toFixed(2)}
+          </p>
 
           {c.details && (
             <>
@@ -70,7 +86,9 @@ export function ComponentCard({
                 <DialogContent className="bg-surface border-white/10">
                   <DialogHeader>
                     <div className="flex items-center gap-2">
-                      <DialogTitle className="text-base font-semibold">{c.name}</DialogTitle>
+                      <DialogTitle className="text-base font-semibold">
+                        {c.name}
+                      </DialogTitle>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${stockMeta[c.stock].className}`}
                       >
@@ -118,7 +136,9 @@ export function ComponentCard({
           >
             <Minus size={14} />
           </button>
-          <span className="w-6 text-center font-mono text-sm tabular-nums">{c.qty}</span>
+          <span className="w-6 text-center font-mono text-sm tabular-nums">
+            {c.qty}
+          </span>
           <button
             onClick={() => setQty(c.id, c.qty + 1)}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground"
@@ -135,13 +155,23 @@ function Row({ label, value }: { label: string; value?: string | number }) {
   if (value === undefined || value === null || value === "") return null;
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
-      <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-      <span className="truncate font-mono text-[11px] text-foreground/90">{value}</span>
+      <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </span>
+      <span className="truncate font-mono text-[11px] text-foreground/90">
+        {value}
+      </span>
     </div>
   );
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+function Group({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-white/5 bg-black/20 px-3 py-1.5">
       <p className="mb-1 mt-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-primary/80">
@@ -152,7 +182,13 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-function SpecGrid({ d, category }: { d: ComponentDetails; category: Component["category"] }) {
+function SpecGrid({
+  d,
+  category,
+}: {
+  d: ComponentDetails;
+  category: Component["category"];
+}) {
   const v = `${d.voltageMin}–${d.voltageMax} V`;
   return (
     <div className="mt-3 flex flex-col gap-2">
@@ -168,24 +204,43 @@ function SpecGrid({ d, category }: { d: ComponentDetails; category: Component["c
           <Row label="Tolerance" value={d.tolerance} />
         </Group>
       )}
-      {(category === "MCU" || category === "Logic" || category === "Sensor") && (
+      {(category === "MCU" ||
+        category === "Logic" ||
+        category === "Sensor") && (
         <Group title="Integrated circuit">
           <Row label="Logic family" value={d.logicFamily} />
-          <Row label="I/O voltage" value={d.ioVoltage !== undefined ? `${d.ioVoltage} V` : undefined} />
+          <Row
+            label="I/O voltage"
+            value={d.ioVoltage !== undefined ? `${d.ioVoltage} V` : undefined}
+          />
           <Row label="Pin count" value={d.pinCount} />
           <Row label="Max current" value={d.maxCurrent} />
         </Group>
       )}
       {category === "Actuator" && (
         <Group title="Electromechanical">
-          <Row label="Nominal V" value={d.nominalVoltage !== undefined ? `${d.nominalVoltage} V` : undefined} />
+          <Row
+            label="Nominal V"
+            value={
+              d.nominalVoltage !== undefined
+                ? `${d.nominalVoltage} V`
+                : undefined
+            }
+          />
           <Row label="Current draw" value={d.currentDraw} />
           <Row label="Contact rating" value={d.contactRating} />
         </Group>
       )}
       {category === "Power" && (
         <Group title="Power">
-          <Row label="Nominal V" value={d.nominalVoltage !== undefined ? `${d.nominalVoltage} V` : undefined} />
+          <Row
+            label="Nominal V"
+            value={
+              d.nominalVoltage !== undefined
+                ? `${d.nominalVoltage} V`
+                : undefined
+            }
+          />
           <Row label="Capacity" value={d.currentDraw} />
           <Row label="Contact rating" value={d.contactRating} />
         </Group>

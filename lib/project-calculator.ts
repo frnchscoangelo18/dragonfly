@@ -1,39 +1,29 @@
-import { type Component } from "@/features/bom/data";
-import { type ProjectTag } from "@/data/mock/projects";
+import { getAllComponents } from "./inventory/client";
+import { Component } from "./inventory/types";
+import { ProjectNodeModel } from "./project/types";
+import { getProjectNodes } from "./project/client";
 
-export interface ProjectCartSummary {
-  id: string;
-  name: string;
-  tag: ProjectTag;
-  timestamp: string;
-  totalPrice: number;
-  items: (Component & { qtyPrice: number })[];
-}
+export const calculateProjectCost = async (
+  projectId: string,
+): Promise<number> => {
+  let nodes: ProjectNodeModel[] = [];
 
-/**
- * Calculates the summary data from current BOM items.
- */
-export const calculateProjectCartSummary = (
-  name: string,
-  tag: ProjectTag,
-  items: Component[],
-): ProjectCartSummary => {
-  const itemsWithQtyPrice = items.map((item) => ({
-    ...item,
-    qtyPrice: item.unitPrice * item.qty,
-  }));
+  nodes = await getProjectNodes(projectId);
 
-  const totalPrice = itemsWithQtyPrice.reduce(
-    (sum, item) => sum + item.qtyPrice,
+  if (nodes.length === 0) {
+    return 0;
+  }
+
+  const allInventory = await getAllComponents();
+  const items: Component[] = nodes
+    .map((node) => node.componentId)
+    .map((id) => allInventory.find((item) => item.id === id))
+    .filter((item) => item !== undefined);
+
+  const totalPrice = items.reduce(
+    (sum, item) => sum + item.unitPrice * item.qty,
     0,
   );
 
-  return {
-    id: `${name}-${Date.now()}`,
-    name,
-    tag,
-    timestamp: new Date().toLocaleString(),
-    totalPrice,
-    items: itemsWithQtyPrice,
-  };
+  return totalPrice;
 };
