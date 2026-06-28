@@ -10,22 +10,22 @@
     "id": "proj_01_comp_mcu_01",
     "projectId": "proj_01",
     "componentId": "comp_mcu_01",
-    "positionX": 206,
-    "positionY": 64
+    "positionX": 338,
+    "positionY": -68
   },
   {
     "id": "proj_01_comp_sns_01",
     "projectId": "proj_01",
     "componentId": "comp_sns_01",
-    "positionX": 326,
-    "positionY": -64
+    "positionX": 42,
+    "positionY": 0
   },
   {
     "id": "proj_01_comp_act_01",
     "projectId": "proj_01",
     "componentId": "comp_act_01",
-    "positionX": -50,
-    "positionY": 36
+    "positionX": 390,
+    "positionY": 126
   },
   {
     "id": "proj_01_comp_log_01",

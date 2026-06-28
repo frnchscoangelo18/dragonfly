@@ -5,7 +5,7 @@ import {
   ProjectSubstituteModel 
 } from "./types";
 
-const API_BASE = "/api/projects";
+const API_BASE = "/api/v1/projects";
 
 export async function getAllProjects(): Promise<ProjectModel[]> {
   const res = await fetch(API_BASE);

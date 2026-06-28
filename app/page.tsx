@@ -77,7 +77,7 @@ export default function Home() {
         formData.append("image", selectedFiles[0].file);
       }
 
-      const res = await fetch("/api/generate", {
+      const res = await fetch("/api/v1/generate", {
         method: "POST",
         body: formData,
       });
