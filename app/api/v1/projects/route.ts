@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { getAllProjects, createProject } from '@/lib/project/server';
+import { NextResponse } from "next/server";
+import { getAllProjects, createProject } from "@/lib/project/json/server";
 
 export async function GET() {
   const projects = await getAllProjects();
@@ -12,6 +12,9 @@ export async function POST(request: Request) {
     const project = await createProject(body);
     return NextResponse.json(project, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create project" },
+      { status: 500 },
+    );
   }
 }

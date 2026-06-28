@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getNodesByProjectId } from '@/lib/project/server';
+import { getNodesByProjectId } from '@/lib/project/json/server';
 
 type Params = Promise<{ id: string }>;
 

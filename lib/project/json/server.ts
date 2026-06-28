@@ -5,7 +5,7 @@ import {
   ProjectNodeModel,
   ProjectEdgeModel,
   ProjectSubstituteModel,
-} from "./types";
+} from "../types";
 
 const PATHS = {
   projects: path.join(process.cwd(), "data", "projects.json"),

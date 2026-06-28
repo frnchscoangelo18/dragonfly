@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { getAllComponents, createComponent } from '@/lib/inventory/server';
+import { NextResponse } from "next/server";
+import { getAllComponents, createComponent } from "@/lib/inventory/json/server";
 
 export async function GET() {
   const components = await getAllComponents();
@@ -12,6 +12,9 @@ export async function POST(request: Request) {
     const component = await createComponent(body);
     return NextResponse.json(component, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create component' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create component" },
+      { status: 500 },
+    );
   }
 }

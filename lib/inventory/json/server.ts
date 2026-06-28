@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { Component, StockStatus } from "./types";
+import { Component, StockStatus } from "../types";
 
 const DATA_PATH = path.join(process.cwd(), "data", "inventory.json");
 
@@ -41,12 +41,16 @@ export async function getAllComponents(): Promise<Component[]> {
   return await readInventory();
 }
 
-export async function getComponentById(id: string): Promise<Component | undefined> {
+export async function getComponentById(
+  id: string,
+): Promise<Component | undefined> {
   const inventory = await readInventory();
   return inventory.find((c) => c.id === id);
 }
 
-export async function createComponent(component: Component): Promise<Component> {
+export async function createComponent(
+  component: Component,
+): Promise<Component> {
   const inventory = await readInventory();
   inventory.push(component);
   await writeInventory(inventory);
@@ -55,7 +59,7 @@ export async function createComponent(component: Component): Promise<Component> 
 
 export async function updateComponent(
   id: string,
-  updatedComponent: Partial<Component>
+  updatedComponent: Partial<Component>,
 ): Promise<Component | undefined> {
   const inventory = await readInventory();
   const index = inventory.findIndex((c) => c.id === id);
