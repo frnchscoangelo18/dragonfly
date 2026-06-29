@@ -41,16 +41,10 @@ import {
 } from "@/lib/apis/project/client";
 import { edgeColors } from "@/lib/apis/project/constants";
 import { getAllItems } from "@/lib/apis/inventory/client";
-import { ItemModel } from "@/lib/apis/inventory/types";
 import {
   CustomNode,
   type ComponentNode,
 } from "@/features/visual-flow/CustomNode";
-import {
-  ProjectEdgeModel,
-  ProjectModel,
-  ProjectNodeModel,
-} from "@/lib/apis/project/types";
 import { toast } from "sonner";
 import { useFlow } from "@/features/visual-flow/store";
 

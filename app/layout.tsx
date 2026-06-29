@@ -8,6 +8,7 @@ import { SheetProvider } from "@/lib/sheet-context";
 import { Toaster } from "@/components/ui/sonner";
 import { InspireProvider } from "@/features/inspire/store";
 import { FlowProvider } from "@/features/visual-flow/store";
+import { CartProvider } from "@/features/cart/store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,10 +39,12 @@ export default function RootLayout({
         <BomProvider>
           <InspireProvider>
             <FlowProvider>
-              <SheetProvider>
-                <MobileShell>{children}</MobileShell>
-                <Toaster position="top-center" theme="dark" />
-              </SheetProvider>
+              <CartProvider>
+                <SheetProvider>
+                  <MobileShell>{children}</MobileShell>
+                  <Toaster position="top-center" theme="dark" />
+                </SheetProvider>
+              </CartProvider>
             </FlowProvider>
           </InspireProvider>
         </BomProvider>
