@@ -141,3 +141,27 @@ export async function createProjectComponent(
   if (!res.ok) throw new Error("Failed to create project component");
   return res.json();
 }
+
+export async function updateProjectComponent(
+  projectId: string,
+  componentId: string,
+  updated: Partial<ProjectComponentModel>,
+): Promise<ProjectComponentModel> {
+  const res = await fetch(`${API_BASE}/${projectId}/components/${componentId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updated),
+  });
+  if (!res.ok) throw new Error("Failed to update project component");
+  return res.json();
+}
+
+export async function deleteProjectComponent(
+  projectId: string,
+  componentId: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/${projectId}/components/${componentId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete project component");
+}

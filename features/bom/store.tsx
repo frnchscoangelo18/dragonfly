@@ -19,6 +19,8 @@ import { getAllItems } from "@/lib/inventory/client";
 
 interface BomStore {
   components: ProjectComponentModel[];
+  originalComponents: ProjectComponentModel[];
+  hasUnsavedChanges: boolean;
   alerts: BomAlert[];
   total: number;
   itemCount: number;
@@ -27,6 +29,8 @@ interface BomStore {
   setQty: (id: string, qty: number) => void;
   remove: (id: string) => void;
   swap: (id: string, next: Omit<ProjectComponentModel, "qty">) => void;
+  revertChanges: () => void;
+  commitChanges: () => void;
   loadProject: (projectName: string) => Promise<void>;
   loadDynamicProject: (
     projectName: string,
@@ -42,6 +46,8 @@ const Ctx = createContext<BomStore | null>(null);
 
 export function BomProvider({ children }: { children: ReactNode }) {
   const [components, setComponents] = useState<ProjectComponentModel[]>([]);
+  const [originalComponents, setOriginalComponents] = useState<ProjectComponentModel[]>([]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [alerts, setAlerts] = useState<BomAlert[]>([]);
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
@@ -59,6 +65,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
     const components = await getProjectComponents(project.id);
 
     setComponents(components);
+    setOriginalComponents(components);
+    setHasUnsavedChanges(false);
     setAlerts([]); // Clear dynamic alerts when loading from API
   };
 
@@ -70,6 +78,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
   ) => {
     setProjectInfo({ name: projectName, tag });
     setComponents(newComponents);
+    setOriginalComponents(newComponents);
+    setHasUnsavedChanges(false);
     setAlerts(newAlerts);
   };
   const pushToCart = useCallback(
@@ -93,26 +103,43 @@ export function BomProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<BomStore>(() => {
     const total = (components || []).reduce(
-      (s, i) => s + (i.unitPrice || 0) * (i.qty || 1),
+      (s, i) => s + (i.unitPrice || 0) * (i.qty ?? 1),
       0,
     );
-    const itemCount = (components || []).reduce((s, i) => s + (i.qty || 1), 0);
+    const itemCount = (components || []).reduce((s, i) => s + (i.qty ?? 1), 0);
     return {
       components: components || [],
+      originalComponents: originalComponents || [],
+      hasUnsavedChanges,
       alerts: alerts || [],
       total,
       itemCount,
       projectInfo,
       pushedHistory,
-      setQty: (id, qty) =>
+      setQty: (id, qty) => {
         setComponents((prev) =>
           prev.map((i) => (i.id === id ? { ...i, qty: Math.max(0, qty) } : i)),
-        ),
-      remove: (id) => setComponents((prev) => prev.filter((i) => i.id !== id)),
-      swap: (id, next) =>
+        );
+        setHasUnsavedChanges(true);
+      },
+      remove: (id) => {
+        setComponents((prev) => prev.filter((i) => i.id !== id));
+        setHasUnsavedChanges(true);
+      },
+      swap: (id, next) => {
         setComponents((prev) =>
           prev.map((i) => (i.id === id ? { ...next, qty: i.qty } : i)),
-        ),
+        );
+        setHasUnsavedChanges(true);
+      },
+      revertChanges: () => {
+        setComponents(originalComponents);
+        setHasUnsavedChanges(false);
+      },
+      commitChanges: () => {
+        setOriginalComponents(components);
+        setHasUnsavedChanges(false);
+      },
       loadProject: async (name) => await loadProject(name),
       loadDynamicProject,
       pushToCart,
@@ -120,6 +147,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
     };
   }, [
     components,
+    originalComponents,
+    hasUnsavedChanges,
     alerts,
     projectInfo,
     pushedHistory,

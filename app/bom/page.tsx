@@ -20,7 +20,12 @@ import { ComponentCard } from "@/features/bom/ComponentCard";
 import { SubstituteSheet } from "@/features/bom/SubstituteSheet";
 import { compatibilityAlerts } from "@/features/bom/data";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getAllProjects } from "@/lib/project/client";
+import {
+  getAllProjects,
+  createProjectComponent,
+  updateProjectComponent,
+  deleteProjectComponent,
+} from "@/lib/project/client";
 import {
   ProjectCartSummary,
   ProjectComponentModel,
@@ -84,8 +89,18 @@ function ProjectItem({
 }
 
 export default function BomScreen() {
-  const { components, alerts, total, itemCount, loadProject, pushToCart } =
-    useBom();
+  const {
+    components,
+    originalComponents,
+    hasUnsavedChanges,
+    revertChanges,
+    commitChanges,
+    alerts,
+    total,
+    itemCount,
+    loadProject,
+    pushToCart,
+  } = useBom();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
   const [sub, setSub] = useState<ProjectComponentModel | null>(null); // Note: updated to use ProjectComponentModel
@@ -143,42 +158,79 @@ export default function BomScreen() {
     );
   }
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     setCheckout("loading");
-    setTimeout(() => setCheckout("done"), 1400);
+    
+    if (selectedProject) {
+      const project = projects.find((p) => p.name === selectedProject);
+      if (project) {
+        try {
+          const deletes = originalComponents.filter((oc) => !components.some((c) => c.id === oc.id));
+          const creates = components.filter((c) => !originalComponents.some((oc) => oc.id === c.id));
+          const updates = components.filter((c) => {
+            const oc = originalComponents.find((o) => o.id === c.id);
+            if (!oc) return false;
+            return (
+              c.qty !== oc.qty ||
+              c.inventoryId !== oc.inventoryId ||
+              c.unitPrice !== oc.unitPrice ||
+              c.name !== oc.name
+            );
+          });
+
+          await Promise.all(
+            deletes.map((c) => deleteProjectComponent(project.id, c.id)),
+          );
+          await Promise.all(
+            creates.map((c) => {
+              const { projectId, createdAt, updatedAt, stock, stockCount, ...rest } = c;
+              return createProjectComponent(project.id, rest as any);
+            }),
+          );
+          await Promise.all(
+            updates.map((c) => {
+              const { id, projectId, createdAt, updatedAt, stock, stockCount, ...rest } = c;
+              return updateProjectComponent(project.id, c.id, rest as any);
+            }),
+          );
+
+          commitChanges();
+        } catch (e) {
+          console.error("Failed to sync changes", e);
+        }
+
+        const summary: Omit<ProjectCartSummary, "totalPrice"> = {
+          id: `${project.name}-${Date.now()}`,
+          name: project.name,
+          tag: project.tag,
+          timestamp: new Date().toLocaleString(),
+          items: components.map((item) => ({
+            ...item,
+            qtyPrice: item.unitPrice * item.qty,
+          })),
+        };
+        pushToCart(summary);
+      } else if (components.length > 0) {
+        // Dynamic AI Project
+        const summary: Omit<ProjectCartSummary, "totalPrice"> = {
+          id: `dynamic-${Date.now()}`,
+          name: selectedProject,
+          tag: ProjectTagEnum.NA,
+          timestamp: new Date().toLocaleString(),
+          items: components.map((item) => ({
+            ...item,
+            qtyPrice: item.unitPrice * item.qty,
+          })),
+        };
+        pushToCart(summary);
+      }
+    }
+    
+    setCheckout("done");
     setTimeout(() => {
       setCheckout("idle");
-      if (selectedProject) {
-        const project = projects.find((p) => p.name === selectedProject);
-        if (project) {
-          const summary: Omit<ProjectCartSummary, "totalPrice"> = {
-            id: `${project.name}-${Date.now()}`,
-            name: project.name,
-            tag: project.tag,
-            timestamp: new Date().toLocaleString(),
-            items: components.map((item) => ({
-              ...item,
-              qtyPrice: item.unitPrice * item.qty,
-            })),
-          };
-          pushToCart(summary);
-        } else if (components.length > 0) {
-          // Dynamic AI Project
-          const summary: Omit<ProjectCartSummary, "totalPrice"> = {
-            id: `dynamic-${Date.now()}`,
-            name: selectedProject,
-            tag: ProjectTagEnum.NA,
-            timestamp: new Date().toLocaleString(),
-            items: components.map((item) => ({
-              ...item,
-              qtyPrice: item.unitPrice * item.qty,
-            })),
-          };
-          pushToCart(summary);
-        }
-      }
       router.push("/cart");
-    }, 2400);
+    }, 1000);
   };
 
   return (
@@ -357,17 +409,31 @@ export default function BomScreen() {
                 );
 
               return (
-                <motion.button
-                  whileTap={hasIssues ? {} : { scale: 0.97 }}
-                  onClick={handleCheckout}
-                  disabled={checkout !== "idle" || hasIssues}
-                  className={cn(
-                    "flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-primary-foreground",
-                    hasIssues
-                      ? "bg-muted text-muted-foreground cursor-not-allowed"
-                      : "glow-primary bg-primary",
-                  )}
-                >
+                <div className="flex items-center gap-2">
+                  <AnimatePresence>
+                    {hasUnsavedChanges && !hasIssues && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8, width: 0 }}
+                        animate={{ opacity: 1, scale: 1, width: "auto" }}
+                        exit={{ opacity: 0, scale: 0.8, width: 0 }}
+                        onClick={revertChanges}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-muted-foreground ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-foreground"
+                      >
+                        <X size={16} />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                  <motion.button
+                    whileTap={hasIssues ? {} : { scale: 0.97 }}
+                    onClick={handleCheckout}
+                    disabled={checkout !== "idle" || hasIssues}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-primary-foreground",
+                      hasIssues
+                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                        : "glow-primary bg-primary",
+                    )}
+                  >
                   <AnimatePresence mode="wait">
                     {checkout === "idle" && (
                       <motion.span
@@ -404,7 +470,8 @@ export default function BomScreen() {
                       </motion.span>
                     )}
                   </AnimatePresence>
-                </motion.button>
+                  </motion.button>
+                </div>
               );
             })()}
           </motion.div>
