@@ -1,14 +1,18 @@
-import { NextResponse } from 'next/server';
-import { getComponentById, updateComponent, deleteComponent } from '@/lib/inventory/supabase/server';
+import { NextResponse } from "next/server";
+import {
+  getItemById,
+  updateItem,
+  deleteItem,
+} from "@/lib/inventory/supabase/server";
 
 type Params = Promise<{ id: string }>;
 
 export async function GET(request: Request, { params }: { params: Params }) {
   try {
     const { id } = await params;
-    const component = await getComponentById(id);
+    const component = await getItemById(id);
     if (!component) {
-      return NextResponse.json({ error: 'Component not found' }, { status: 404 });
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
     return NextResponse.json(component);
   } catch (error: any) {
@@ -20,9 +24,9 @@ export async function PUT(request: Request, { params }: { params: Params }) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const component = await updateComponent(id, body);
+    const component = await updateItem(id, body);
     if (!component) {
-      return NextResponse.json({ error: 'Component not found' }, { status: 404 });
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
     return NextResponse.json(component);
   } catch (error: any) {
@@ -33,9 +37,9 @@ export async function PUT(request: Request, { params }: { params: Params }) {
 export async function DELETE(request: Request, { params }: { params: Params }) {
   try {
     const { id } = await params;
-    const success = await deleteComponent(id);
+    const success = await deleteItem(id);
     if (!success) {
-      return NextResponse.json({ error: 'Component not found' }, { status: 404 });
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
     return new NextResponse(null, { status: 204 });
   } catch (error: any) {

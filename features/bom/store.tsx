@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { getAllProjects, getProjectNodes } from "@/lib/project/client";
-import { getAllComponents } from "@/lib/inventory/client";
+import { getAllItems } from "@/lib/inventory/client";
 import { ItemModel } from "@/lib/inventory/types";
 import { ProjectCartSummary, ProjectTagEnum } from "@/lib/project/types";
 import { BomAlert } from "./data";
@@ -53,7 +53,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
     setProjectInfo({ name: project.name, tag: project.tag });
 
     const nodes = await getProjectNodes(project.id);
-    const allInventory = await getAllComponents();
+    const allInventory = await getAllItems();
     const components = nodes
       .map((node) => node.componentId)
       .map((id) => allInventory.find((item) => item.id === id))

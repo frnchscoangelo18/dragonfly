@@ -1,7 +1,7 @@
 import { ItemModel } from "../types";
 import { supabase } from "@/lib/supabase/client";
 
-export async function getAllComponents(): Promise<ItemModel[]> {
+export async function getAllItems(): Promise<ItemModel[]> {
   const { data, error } = await supabase.from("inventory").select("*");
 
   if (error) throw new Error(`Error fetching components: ${error.message}`);
@@ -22,9 +22,7 @@ export async function getAllComponents(): Promise<ItemModel[]> {
   }));
 }
 
-export async function getComponentById(
-  id: string,
-): Promise<ItemModel | undefined> {
+export async function getItemById(id: string): Promise<ItemModel | undefined> {
   const { data, error } = await supabase
     .from("inventory")
     .select("*")
@@ -51,9 +49,7 @@ export async function getComponentById(
   };
 }
 
-export async function createComponent(
-  component: ItemModel,
-): Promise<ItemModel> {
+export async function createItem(component: ItemModel): Promise<ItemModel> {
   const { data, error } = await supabase
     .from("inventory")
     .insert([
@@ -91,27 +87,25 @@ export async function createComponent(
   };
 }
 
-export async function updateComponent(
+export async function updateItem(
   id: string,
-  updatedComponent: Partial<ItemModel>,
+  updatedItem: Partial<ItemModel>,
 ): Promise<ItemModel | undefined> {
   // Map camelCase to snake_case for the update
   const updatePayload: any = {};
-  if ("name" in updatedComponent) updatePayload.name = updatedComponent.name;
-  if ("partNumber" in updatedComponent)
-    updatePayload.part_number = updatedComponent.partNumber;
-  if ("specs" in updatedComponent) updatePayload.specs = updatedComponent.specs;
-  if ("unitPrice" in updatedComponent)
-    updatePayload.unit_price = updatedComponent.unitPrice;
-  if ("qty" in updatedComponent) updatePayload.qty = updatedComponent.qty;
-  if ("stock" in updatedComponent) updatePayload.stock = updatedComponent.stock;
-  if ("stockCount" in updatedComponent)
-    updatePayload.stock_count = updatedComponent.stockCount;
-  if ("category" in updatedComponent)
-    updatePayload.category = updatedComponent.category;
-  if ("pins" in updatedComponent) updatePayload.pins = updatedComponent.pins;
-  if ("details" in updatedComponent)
-    updatePayload.details = updatedComponent.details;
+  if ("name" in updatedItem) updatePayload.name = updatedItem.name;
+  if ("partNumber" in updatedItem)
+    updatePayload.part_number = updatedItem.partNumber;
+  if ("specs" in updatedItem) updatePayload.specs = updatedItem.specs;
+  if ("unitPrice" in updatedItem)
+    updatePayload.unit_price = updatedItem.unitPrice;
+  if ("qty" in updatedItem) updatePayload.qty = updatedItem.qty;
+  if ("stock" in updatedItem) updatePayload.stock = updatedItem.stock;
+  if ("stockCount" in updatedItem)
+    updatePayload.stock_count = updatedItem.stockCount;
+  if ("category" in updatedItem) updatePayload.category = updatedItem.category;
+  if ("pins" in updatedItem) updatePayload.pins = updatedItem.pins;
+  if ("details" in updatedItem) updatePayload.details = updatedItem.details;
 
   const { data, error } = await supabase
     .from("inventory")
@@ -138,7 +132,7 @@ export async function updateComponent(
   };
 }
 
-export async function deleteComponent(id: string): Promise<boolean> {
+export async function deleteItem(id: string): Promise<boolean> {
   const { error } = await supabase.from("inventory").delete().eq("id", id);
 
   if (error) throw new Error(`Error deleting component: ${error.message}`);

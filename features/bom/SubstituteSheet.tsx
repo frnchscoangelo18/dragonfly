@@ -4,7 +4,7 @@ import { substitutesFor } from "./data";
 import { useBom } from "./store";
 import { useSheet } from "@/lib/sheet-context";
 import { useEffect, useMemo, useState } from "react";
-import { getAllComponents } from "@/lib/inventory/client";
+import { getAllItems } from "@/lib/inventory/client";
 import { getAllProjects, getProjectSubstitutes } from "@/lib/project/client";
 import { ItemModel, StockStatus } from "@/lib/inventory/types";
 
@@ -24,7 +24,7 @@ export function SubstituteSheet({
   useEffect(() => {
     const loadInventory = async () => {
       try {
-        const components = await getAllComponents();
+        const components = await getAllItems();
         setInventory(components);
       } catch (err) {
         console.error("Failed to load inventory for substitutes:", err);
@@ -60,9 +60,7 @@ export function SubstituteSheet({
       return [];
 
     return projectSubsData
-      .map((sub) =>
-        inventory.find((item) => item.id === sub.substituteComponentId),
-      )
+      .map((sub) => inventory.find((item) => item.id === sub.substituteItemId))
       .filter((item): item is ItemModel => !!item)
       .map((c: ItemModel) => ({
         id: c.id,

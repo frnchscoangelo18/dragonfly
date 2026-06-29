@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { getAllComponents, createComponent } from "@/lib/inventory/json/server";
+import { getAllItems, createItem } from "@/lib/inventory/json/server";
 
 export async function GET() {
-  const components = await getAllComponents();
+  const components = await getAllItems();
   return NextResponse.json(components);
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const component = await createComponent(body);
+    const component = await createItem(body);
     return NextResponse.json(component, { status: 201 });
   } catch (error) {
     return NextResponse.json(

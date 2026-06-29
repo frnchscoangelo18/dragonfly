@@ -37,40 +37,36 @@ async function writeInventory(inventory: ItemModel[]): Promise<void> {
   await fs.writeFile(DATA_PATH, JSON.stringify(inventory, null, 2), "utf-8");
 }
 
-export async function getAllComponents(): Promise<ItemModel[]> {
+export async function getAllItems(): Promise<ItemModel[]> {
   return await readInventory();
 }
 
-export async function getComponentById(
-  id: string,
-): Promise<ItemModel | undefined> {
+export async function getItemById(id: string): Promise<ItemModel | undefined> {
   const inventory = await readInventory();
   return inventory.find((c) => c.id === id);
 }
 
-export async function createComponent(
-  component: ItemModel,
-): Promise<ItemModel> {
+export async function createItem(component: ItemModel): Promise<ItemModel> {
   const inventory = await readInventory();
   inventory.push(component);
   await writeInventory(inventory);
   return component;
 }
 
-export async function updateComponent(
+export async function updateItem(
   id: string,
-  updatedComponent: Partial<ItemModel>,
+  updatedItem: Partial<ItemModel>,
 ): Promise<ItemModel | undefined> {
   const inventory = await readInventory();
   const index = inventory.findIndex((c) => c.id === id);
   if (index === -1) return undefined;
 
-  inventory[index] = { ...inventory[index], ...updatedComponent };
+  inventory[index] = { ...inventory[index], ...updatedItem };
   await writeInventory(inventory);
   return inventory[index];
 }
 
-export async function deleteComponent(id: string): Promise<boolean> {
+export async function deleteItem(id: string): Promise<boolean> {
   const inventory = await readInventory();
   const index = inventory.findIndex((c) => c.id === id);
   if (index === -1) return false;

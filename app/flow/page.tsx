@@ -23,7 +23,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Check, RotateCcw, Image, ChevronDown, Loader2 } from "lucide-react";
+import {
+  Check,
+  RotateCcw,
+  ChevronDown,
+  Loader2,
+  ImageIcon,
+} from "lucide-react";
 import {
   getAllProjects,
   getProjectNodes,
@@ -34,7 +40,7 @@ import {
   deleteProjectEdge,
 } from "@/lib/project/client";
 import { edgeColors } from "@/lib/project/constants";
-import { getAllComponents } from "@/lib/inventory/client";
+import { getAllItems } from "@/lib/inventory/client";
 import { ItemModel } from "@/lib/inventory/types";
 import {
   CustomNode,
@@ -64,7 +70,7 @@ export default function FlowScreen() {
 
   // Fetch initial project and component lists
   useEffect(() => {
-    Promise.all([getAllProjects(), getAllComponents()])
+    Promise.all([getAllProjects(), getAllItems()])
       .then(([projs, inv]) => {
         setProjects(projs);
         setInventory(inv);
@@ -446,7 +452,7 @@ export default function FlowScreen() {
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="h-40 w-full rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground">
-              <Image size={48} opacity={0.4} />
+              <ImageIcon size={48} opacity={0.4} />
             </div>
             <div className="text-xs text-foreground/80 leading-relaxed">
               {selected?.specs}

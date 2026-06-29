@@ -3,21 +3,19 @@ import { ItemModel } from "./types";
 // const API_BASE = "/api/v1/inventory";
 const API_BASE = "/api/v2/inventory";
 
-export async function getAllComponents(): Promise<ItemModel[]> {
+export async function getAllItems(): Promise<ItemModel[]> {
   const res = await fetch(API_BASE);
   if (!res.ok) throw new Error("Failed to fetch components");
   return res.json();
 }
 
-export async function getComponent(id: string): Promise<ItemModel> {
+export async function getItem(id: string): Promise<ItemModel> {
   const res = await fetch(`${API_BASE}/${id}`);
   if (!res.ok) throw new Error("Failed to fetch component");
   return res.json();
 }
 
-export async function createComponent(
-  component: ItemModel,
-): Promise<ItemModel> {
+export async function createItem(component: ItemModel): Promise<ItemModel> {
   const res = await fetch(API_BASE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -27,7 +25,7 @@ export async function createComponent(
   return res.json();
 }
 
-export async function updateComponent(
+export async function updateItem(
   id: string,
   component: Partial<ItemModel>,
 ): Promise<ItemModel> {
@@ -40,7 +38,7 @@ export async function updateComponent(
   return res.json();
 }
 
-export async function deleteComponent(id: string): Promise<void> {
+export async function deleteItem(id: string): Promise<void> {
   const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete component");
 }
