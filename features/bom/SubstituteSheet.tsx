@@ -4,10 +4,10 @@ import { substitutesFor } from "./data";
 import { useBom } from "./store";
 import { useSheet } from "@/lib/sheet-context";
 import { useEffect, useMemo, useState } from "react";
-import { getAllItems } from "@/lib/inventory/client";
-import { getAllProjects, getProjectSubstitutes } from "@/lib/project/client";
-import { StockStatus } from "@/lib/inventory/types";
-import { ProjectComponentModel } from "@/lib/project/types";
+import { getAllItems } from "@/lib/apis/inventory/client";
+import { getAllProjects, getProjectSubstitutes } from "@/lib/apis/project/client";
+import { StockStatus } from "@/lib/apis/inventory/types";
+import { ProjectComponentModel } from "@/lib/apis/project/types";
 
 export function SubstituteSheet({
   component,

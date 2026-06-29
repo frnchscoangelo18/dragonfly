@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAllItems, createItem } from "@/lib/inventory/json/server";
+import { getAllItems, createItem } from "@/lib/apis/inventory/json/server";
 
 export async function GET() {
   const components = await getAllItems();

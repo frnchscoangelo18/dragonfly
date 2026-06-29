@@ -38,10 +38,10 @@ import {
   updateProjectEdge,
   createProjectEdge,
   deleteProjectEdge,
-} from "@/lib/project/client";
-import { edgeColors } from "@/lib/project/constants";
-import { getAllItems } from "@/lib/inventory/client";
-import { ItemModel } from "@/lib/inventory/types";
+} from "@/lib/apis/project/client";
+import { edgeColors } from "@/lib/apis/project/constants";
+import { getAllItems } from "@/lib/apis/inventory/client";
+import { ItemModel } from "@/lib/apis/inventory/types";
 import {
   CustomNode,
   type ComponentNode,
@@ -50,7 +50,7 @@ import {
   ProjectEdgeModel,
   ProjectModel,
   ProjectNodeModel,
-} from "@/lib/project/types";
+} from "@/lib/apis/project/types";
 import { toast } from "sonner";
 
 const nodeTypes = { custom: CustomNode };

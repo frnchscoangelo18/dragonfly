@@ -1,4 +1,4 @@
-import { getProjectComponents } from "./project/client";
+import { getProjectComponents } from "../project/client";
 
 export const calculateProjectCost = async (
   projectId: string,

@@ -9,8 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ItemDetails, StockStatus } from "@/lib/inventory/types";
-import { ProjectComponentModel } from "@/lib/project/types";
+import { ItemDetails, StockStatus } from "@/lib/apis/inventory/types";
+import { ProjectComponentModel } from "@/lib/apis/project/types";
 
 const stockMeta = {
   [StockStatus.IN_STOCK]: {

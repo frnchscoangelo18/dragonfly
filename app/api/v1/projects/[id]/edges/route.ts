@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEdgesByProjectId } from "@/lib/project/json/server";
+import { getEdgesByProjectId } from "@/lib/apis/project/json/server";
 
 type Params = Promise<{ id: string }>;
 

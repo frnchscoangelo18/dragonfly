@@ -15,15 +15,28 @@ import {
   X,
   Loader2,
   HelpCircle,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useBom } from "@/features/bom/store";
+import { generateBOM } from "@/lib/apis/generate/client";
+import { generateSpecs } from "@/lib/apis/generate/specsClient";
+import { downloadReport } from "@/lib/apis/pdf/client";
 import Link from "next/link";
 import Image from "next/image";
+import { SpecsGeneratorButton } from "@/components/SpecsGeneratorButton";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { getAllProjects } from "@/lib/project/client";
+import { getAllProjects } from "@/lib/apis/project/client";
 import { ProjectCost } from "@/components/ProjectCost";
-import { ProjectModel } from "@/lib/project/types";
+import { ProjectModel } from "@/lib/apis/project/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -43,8 +56,14 @@ const suggestions = [
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Generating...");
   const [showTip, setShowTip] = useState(false);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
+  const [previewImage, setPreviewImage] = useState<{
+    file: File;
+    preview: string;
+    index: number;
+  } | null>(null);
   const router = useRouter();
 
   const { loadDynamicProject } = useBom();
@@ -62,7 +81,6 @@ export default function Home() {
   }, []);
 
   const handleGenerate = async () => {
-    // ...
     if (prompt.trim() === "" && selectedFiles.length === 0) {
       setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
@@ -71,20 +89,27 @@ export default function Home() {
 
     setIsLoading(true);
     try {
-      const formData = new FormData();
-      if (prompt) formData.append("prompt", prompt);
-      if (selectedFiles.length > 0) {
-        formData.append("image", selectedFiles[0].file);
-      }
+      const imageFile = selectedFiles.length > 0 ? selectedFiles[0].file : null;
 
-      const res = await fetch("/api/v1/generate", {
-        method: "POST",
-        body: formData,
-      });
+      // Stage 1: Calculate Specs
+      setLoadingText("Calculating specs...");
+      const specsData = await generateSpecs(prompt || null, imageFile);
+      const specsContext = JSON.stringify(specsData);
 
-      if (!res.ok) throw new Error("Failed to generate BOM from API");
+      // Generate PDF
+      const pdfBytes = await downloadReport({ 
+        projectName: prompt || "Extracted Schematic", 
+        items: specsData.specs 
+      }, true) as ArrayBuffer;
+      
+      // Stage 2: Generate BOM
+      setLoadingText("Generating BOM...");
+      // Combine prompt with specs context
+      const combinedPrompt = prompt 
+        ? `${prompt}\n\nRELEVANT SPECS ANALYSIS:\n${specsContext}` 
+        : `Generate a BOM based on the following specs analysis:\n${specsContext}`;
 
-      const data = await res.json();
+      const data = await generateBOM(combinedPrompt, imageFile);
 
       const projectName = prompt ? prompt : "Extracted Schematic";
       loadDynamicProject(
@@ -92,6 +117,8 @@ export default function Home() {
         data.tag || "N/A",
         data.items,
         data.alerts,
+        specsData,
+        new Blob([pdfBytes], { type: "application/pdf" }), // Store as Blob
       );
 
       router.push(
@@ -103,6 +130,7 @@ export default function Home() {
       setTimeout(() => setShowTip(false), 3000);
     } finally {
       setIsLoading(false);
+      setLoadingText("Generating...");
     }
   };
 
@@ -127,6 +155,7 @@ export default function Home() {
       updated.splice(index, 1);
       return updated;
     });
+    setPreviewImage(null);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -209,7 +238,11 @@ export default function Home() {
           )}
         >
           {selectedFiles.map((item, index) => (
-            <div key={index} className="relative h-18 w-18 flex-shrink-0 mt-2">
+            <div
+              key={index}
+              className="relative h-18 w-18 flex-shrink-0 mt-2 cursor-pointer"
+              onClick={() => setPreviewImage({ ...item, index })}
+            >
               <Image
                 width={72}
                 height={72}
@@ -224,7 +257,7 @@ export default function Home() {
                 }}
                 className={cn(
                   "absolute -top-2 -right-2",
-                  "flex h-5 w-5 items-center justify-center",
+                  "flex p-1 items-center justify-center",
                   "rounded-full bg-red-500/60 text-white",
                   "border border-red-500 shadow-sm",
                   "hover:cursor-pointer",
@@ -236,6 +269,40 @@ export default function Home() {
           ))}
         </div>
       )}
+
+      {/* Image Preview Modal */}
+      <Dialog
+        open={!!previewImage}
+        onOpenChange={(open) => !open && setPreviewImage(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-normal text-muted-foreground">
+              {previewImage?.file.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center max-h-[60vh] overflow-y-auto">
+            {previewImage && (
+              <Image
+                width={400}
+                height={400}
+                src={previewImage.preview}
+                alt={previewImage.file.name}
+                className="rounded-lg object-contain"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={() => previewImage && removeFile(previewImage.index)}
+            >
+              <Trash2 size={16} className="mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Prompt */}
       <section className="flex flex-col gap-3">
@@ -275,7 +342,7 @@ export default function Home() {
         {isLoading ? (
           <>
             <Loader2 size={18} className="animate-spin" />
-            Generating...
+            {loadingText}
           </>
         ) : (
           <>
@@ -284,6 +351,13 @@ export default function Home() {
           </>
         )}
       </motion.button>
+      
+      <SpecsGeneratorButton 
+        prompt={prompt} 
+        image={selectedFiles.length > 0 ? selectedFiles[0].file : null} 
+        projectName={prompt || "Extracted Schematic"}
+      />
+
       {showTip && (
         <motion.p
           initial={{ opacity: 0, y: -5 }}

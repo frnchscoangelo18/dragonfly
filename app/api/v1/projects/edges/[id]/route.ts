@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateEdge, deleteEdge } from "@/lib/project/json/server";
+import { updateEdge, deleteEdge } from "@/lib/apis/project/json/server";
 
 type Params = Promise<{ id: string }>;
 
