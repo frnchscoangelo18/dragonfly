@@ -24,7 +24,6 @@ import { generateSpecs } from "@/lib/apis/generate/specsClient";
 import { downloadReport } from "@/lib/apis/pdf/client";
 import Link from "next/link";
 import Image from "next/image";
-import { SpecsGeneratorButton } from "@/components/SpecsGeneratorButton";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { getAllProjects } from "@/lib/apis/project/client";
 import { ProjectCost } from "@/components/ProjectCost";
@@ -90,28 +89,31 @@ export default function Home() {
     setIsLoading(true);
     try {
       const imageFile = selectedFiles.length > 0 ? selectedFiles[0].file : null;
+      
+      // Sanitize the prompt
+      const sanitizedPrompt = prompt ? prompt.replace(/[^\x00-\x7F]/g, "") : null;
 
       // Stage 1: Calculate Specs
       setLoadingText("Calculating specs...");
-      const specsData = await generateSpecs(prompt || null, imageFile);
+      const specsData = await generateSpecs(sanitizedPrompt, imageFile);
       const specsContext = JSON.stringify(specsData);
 
       // Generate PDF
       const pdfBytes = await downloadReport({ 
-        projectName: prompt || "Extracted Schematic", 
+        projectName: sanitizedPrompt || "Extracted Schematic", 
         items: specsData.specs 
       }, true) as ArrayBuffer;
       
       // Stage 2: Generate BOM
       setLoadingText("Generating BOM...");
-      // Combine prompt with specs context
-      const combinedPrompt = prompt 
-        ? `${prompt}\n\nRELEVANT SPECS ANALYSIS:\n${specsContext}` 
+      // Combine sanitized prompt with specs context
+      const combinedPrompt = sanitizedPrompt 
+        ? `${sanitizedPrompt}\n\nRELEVANT SPECS ANALYSIS:\n${specsContext}` 
         : `Generate a BOM based on the following specs analysis:\n${specsContext}`;
 
       const data = await generateBOM(combinedPrompt, imageFile);
 
-      const projectName = prompt ? prompt : "Extracted Schematic";
+      const projectName = sanitizedPrompt ? sanitizedPrompt : "Extracted Schematic";
       loadDynamicProject(
         projectName,
         data.tag || "N/A",
@@ -351,12 +353,6 @@ export default function Home() {
           </>
         )}
       </motion.button>
-      
-      <SpecsGeneratorButton 
-        prompt={prompt} 
-        image={selectedFiles.length > 0 ? selectedFiles[0].file : null} 
-        projectName={prompt || "Extracted Schematic"}
-      />
 
       {showTip && (
         <motion.p

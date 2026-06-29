@@ -9,7 +9,10 @@ export async function downloadReport(data: { projectName: string; items: any[] }
     body: JSON.stringify(data),
   });
 
-  if (!response.ok) throw new Error("Failed to generate report");
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to generate report: ${response.statusText}`);
+  }
   
   const bytes = await response.arrayBuffer();
   
