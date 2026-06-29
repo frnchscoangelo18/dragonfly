@@ -20,6 +20,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useBom } from "@/features/bom/store";
 import { generateBOM } from "@/lib/apis/generate/client";
+import { generateSpecs } from "@/lib/apis/generate/specsClient";
+import { downloadReport } from "@/lib/apis/pdf/client";
 import Link from "next/link";
 import Image from "next/image";
 import { SpecsGeneratorButton } from "@/components/SpecsGeneratorButton";
@@ -54,6 +56,7 @@ const suggestions = [
 export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("Generating...");
   const [showTip, setShowTip] = useState(false);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
   const [previewImage, setPreviewImage] = useState<{
@@ -78,7 +81,6 @@ export default function Home() {
   }, []);
 
   const handleGenerate = async () => {
-    // ...
     if (prompt.trim() === "" && selectedFiles.length === 0) {
       setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
@@ -88,7 +90,26 @@ export default function Home() {
     setIsLoading(true);
     try {
       const imageFile = selectedFiles.length > 0 ? selectedFiles[0].file : null;
-      const data = await generateBOM(prompt || null, imageFile);
+
+      // Stage 1: Calculate Specs
+      setLoadingText("Calculating specs...");
+      const specsData = await generateSpecs(prompt || null, imageFile);
+      const specsContext = JSON.stringify(specsData);
+
+      // Generate PDF
+      const pdfBytes = await downloadReport({ 
+        projectName: prompt || "Extracted Schematic", 
+        items: specsData.specs 
+      }, true) as ArrayBuffer;
+      
+      // Stage 2: Generate BOM
+      setLoadingText("Generating BOM...");
+      // Combine prompt with specs context
+      const combinedPrompt = prompt 
+        ? `${prompt}\n\nRELEVANT SPECS ANALYSIS:\n${specsContext}` 
+        : `Generate a BOM based on the following specs analysis:\n${specsContext}`;
+
+      const data = await generateBOM(combinedPrompt, imageFile);
 
       const projectName = prompt ? prompt : "Extracted Schematic";
       loadDynamicProject(
@@ -96,6 +117,8 @@ export default function Home() {
         data.tag || "N/A",
         data.items,
         data.alerts,
+        specsData,
+        new Blob([pdfBytes], { type: "application/pdf" }), // Store as Blob
       );
 
       router.push(
@@ -107,6 +130,7 @@ export default function Home() {
       setTimeout(() => setShowTip(false), 3000);
     } finally {
       setIsLoading(false);
+      setLoadingText("Generating...");
     }
   };
 
@@ -318,7 +342,7 @@ export default function Home() {
         {isLoading ? (
           <>
             <Loader2 size={18} className="animate-spin" />
-            Generating...
+            {loadingText}
           </>
         ) : (
           <>

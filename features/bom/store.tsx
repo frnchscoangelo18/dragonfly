@@ -22,6 +22,8 @@ interface BomStore {
   originalComponents: ProjectComponentModel[];
   hasUnsavedChanges: boolean;
   alerts: BomAlert[];
+  specs: any | null;
+  pdfReport: Blob | null; // Added
   total: number;
   itemCount: number;
   projectInfo: { name: string; tag: ProjectTagEnum } | null;
@@ -37,6 +39,8 @@ interface BomStore {
     tag: ProjectTagEnum,
     newComponents: ProjectComponentModel[],
     newAlerts?: BomAlert[],
+    newSpecs?: any,
+    newPdfReport?: Blob | null, // Added
   ) => void;
   pushToCart: (summary: Omit<ProjectCartSummary, "totalPrice">) => void;
   moveToLastCart: (index: number) => void;
@@ -49,6 +53,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
   const [originalComponents, setOriginalComponents] = useState<ProjectComponentModel[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [alerts, setAlerts] = useState<BomAlert[]>([]);
+  const [specs, setSpecs] = useState<any | null>(null);
+  const [pdfReport, setPdfReport] = useState<Blob | null>(null); // Added
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
     tag: ProjectTagEnum;
@@ -68,6 +74,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
     setOriginalComponents(components);
     setHasUnsavedChanges(false);
     setAlerts([]); // Clear dynamic alerts when loading from API
+    setSpecs(null);
+    setPdfReport(null); // Added
   };
 
   const loadDynamicProject = (
@@ -75,12 +83,16 @@ export function BomProvider({ children }: { children: ReactNode }) {
     tag: ProjectTagEnum,
     newComponents: ProjectComponentModel[],
     newAlerts: BomAlert[] = [],
+    newSpecs: any = null,
+    newPdfReport: Blob | null = null, // Added
   ) => {
     setProjectInfo({ name: projectName, tag });
     setComponents(newComponents);
     setOriginalComponents(newComponents);
     setHasUnsavedChanges(false);
     setAlerts(newAlerts);
+    setSpecs(newSpecs);
+    setPdfReport(newPdfReport); // Added
   };
   const pushToCart = useCallback(
     (summary: Omit<ProjectCartSummary, "totalPrice">) => {
@@ -112,6 +124,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
       originalComponents: originalComponents || [],
       hasUnsavedChanges,
       alerts: alerts || [],
+      specs: specs,
+      pdfReport: pdfReport, // Added
       total,
       itemCount,
       projectInfo,
@@ -150,6 +164,8 @@ export function BomProvider({ children }: { children: ReactNode }) {
     originalComponents,
     hasUnsavedChanges,
     alerts,
+    specs,
+    pdfReport, // Added
     projectInfo,
     pushedHistory,
     pushToCart,

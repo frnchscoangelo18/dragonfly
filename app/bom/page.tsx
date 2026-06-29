@@ -28,6 +28,7 @@ import {
   updateProjectComponent,
   deleteProjectComponent,
 } from "@/lib/apis/project/client";
+import { downloadReport } from "@/lib/apis/pdf/client";
 import {
   ProjectCartSummary,
   ProjectComponentModel,
@@ -105,6 +106,8 @@ export default function BomScreen() {
     revertChanges,
     commitChanges,
     alerts,
+    specs,
+    pdfReport,
     total,
     itemCount,
     loadProject,
@@ -116,8 +119,17 @@ export default function BomScreen() {
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [checkout, setCheckout] = useState<"idle" | "loading" | "done">("idle");
   const [isPdfOpen, setIsPdfOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (pdfReport) {
+      const url = URL.createObjectURL(pdfReport);
+      setPdfUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [pdfReport]);
 
   const generate = searchParams?.get("generate");
   const prompt = searchParams?.get("prompt");
@@ -514,20 +526,20 @@ export default function BomScreen() {
         </div>
 
         <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Specs Calculation Report</DialogTitle>
             </DialogHeader>
             <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-white/10 overflow-hidden">
-              <iframe src="/sample.pdf" className="h-full w-full" title="Specs Calculation Report" />
+              {pdfUrl ? (
+                <iframe src={pdfUrl} className="h-full w-full" title="Specs Calculation Report" />
+              ) : (
+                <p className="text-sm text-muted-foreground">No PDF generated</p>
+              )}
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsPdfOpen(false)}>
                 Close
-              </Button>
-              <Button>
-                <Download size={16} />
-                Download
               </Button>
             </div>
           </DialogContent>
