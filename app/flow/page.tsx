@@ -52,19 +52,25 @@ import {
   ProjectNodeModel,
 } from "@/lib/apis/project/types";
 import { toast } from "sonner";
+import { useFlow } from "@/features/visual-flow/store";
 
 const nodeTypes = { custom: CustomNode };
 
 export default function FlowScreen() {
-  const [selected, setSelected] = useState<ComponentNode | null>(null);
-  const [projects, setProjects] = useState<ProjectModel[]>([]);
-  const [currentProject, setCurrentProject] = useState<ProjectModel | null>(
-    null,
-  );
-  const [currentNodes, setCurrentNodes] = useState<ProjectNodeModel[]>([]);
-  const [currentEdges, setCurrentEdges] = useState<ProjectEdgeModel[]>([]);
-  const [inventory, setInventory] = useState<ItemModel[]>([]);
+  const {
+    currentProject,
+    setCurrentProject,
+    currentNodes,
+    setCurrentNodes,
+    currentEdges,
+    setCurrentEdges,
+    inventory,
+    setInventory,
+    projects,
+    setProjects,
+  } = useFlow();
 
+  const [selected, setSelected] = useState<ComponentNode | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -74,12 +80,12 @@ export default function FlowScreen() {
       .then(([projs, inv]) => {
         setProjects(projs);
         setInventory(inv);
-        if (projs.length > 0) {
+        if (projs.length > 0 && !currentProject) {
           setCurrentProject(projs[0]);
         }
       })
       .catch((err) => console.error("Failed to load initial data:", err));
-  }, []);
+  }, [currentProject, setProjects, setInventory, setCurrentProject]);
 
   // Fetch nodes and edges whenever the active project changes
   useEffect(() => {
@@ -95,7 +101,7 @@ export default function FlowScreen() {
         setCurrentEdges(edgesData);
       })
       .catch((err) => console.error("Failed to load project details:", err));
-  }, [currentProject]);
+  }, [currentProject, setCurrentNodes, setCurrentEdges]);
 
   // Map backend models to React Flow properties
   const { nodes: projectNodes, edges: projectEdges } = useMemo(() => {
