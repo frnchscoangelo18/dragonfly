@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useBom } from "@/features/bom/store";
+import { useFlow } from "@/features/visual-flow/store";
 import { generateBOM } from "@/lib/apis/generate/client";
 import { generateSpecs } from "@/lib/apis/generate/specsClient";
 import { downloadReport } from "@/lib/apis/pdf/client";
@@ -75,6 +76,7 @@ export default function Home() {
   const router = useRouter();
 
   const { loadDynamicProject } = useBom();
+  const { loadDynamicFlow } = useFlow();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -96,7 +98,7 @@ export default function Home() {
     }
 
     try {
-      await generate(router, loadDynamicProject);
+      await generate(router, loadDynamicProject, loadDynamicFlow);
     } catch (e) {
       console.error(e);
       setShowTip(true);
@@ -306,7 +308,7 @@ export default function Home() {
         ) : (
           <>
             <Sparkles size={18} />
-            Generate BOM
+            Generate Project
           </>
         )}
       </motion.button>

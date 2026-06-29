@@ -9,6 +9,7 @@ import {
 } from "react";
 import { generateBOM } from "@/lib/apis/generate/client";
 import { generateSpecs } from "@/lib/apis/generate/specsClient";
+import { generateVisualFlow } from "@/lib/apis/generate/visualFlowClient";
 import { downloadReport } from "@/lib/apis/pdf/client";
 
 interface SelectedFile {
@@ -33,7 +34,8 @@ interface InspireStore {
       newAlerts?: any[],
       newSpecs?: any,
       newPdfReport?: Blob | null
-    ) => void
+    ) => void,
+    loadDynamicFlow: (flowData: any) => void
   ) => Promise<void>;
   setLoadingState: (loading: boolean, text?: string) => void;
 }
@@ -68,7 +70,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const generate = useCallback(
-    async (router: any, loadDynamicProject: any) => {
+    async (router: any, loadDynamicProject: any, loadDynamicFlow: any) => {
       if (prompt.trim() === "" && selectedFiles.length === 0) {
         throw new Error("Prompt and files are empty");
       }
@@ -87,19 +89,28 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           items: specsData.specs,
         }, true) as ArrayBuffer;
 
+        setLoadingTextState("Generating visual flow...");
+        const flowResult = await generateVisualFlow(specsContext, sanitizedPrompt, imageFile);
+        if (flowResult) {
+          loadDynamicFlow(flowResult);
+        }
+
+        // 1 second delay for visual polish
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         setLoadingTextState("Generating BOM...");
         const combinedPrompt = sanitizedPrompt
           ? `${sanitizedPrompt}\n\nRELEVANT SPECS ANALYSIS:\n${specsContext}`
           : `Generate a BOM based on the following specs analysis:\n${specsContext}`;
-
-        const data = await generateBOM(combinedPrompt, imageFile);
+        const bomResult = await generateBOM(combinedPrompt, imageFile);
 
         const projectName = sanitizedPrompt ? sanitizedPrompt : "Extracted Schematic";
+        
         loadDynamicProject(
           projectName,
-          data.tag || "N/A",
-          data.items,
-          data.alerts,
+          bomResult.tag || "N/A",
+          bomResult.items,
+          bomResult.alerts,
           specsData,
           new Blob([pdfBytes], { type: "application/pdf" }),
         );

@@ -25,6 +25,7 @@ interface FlowStore {
   setInventory: (inventory: ItemModel[]) => void;
   projects: ProjectModel[];
   setProjects: (projects: ProjectModel[]) => void;
+  loadDynamicFlow: (flowData: any) => void;
 }
 
 const Ctx = createContext<FlowStore | null>(null);
@@ -35,6 +36,34 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [currentEdges, setCurrentEdges] = useState<ProjectEdgeModel[]>([]);
   const [inventory, setInventory] = useState<ItemModel[]>([]);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
+
+  const loadDynamicFlow = useCallback((flowData: any) => {
+    const project = {
+      id: `proj-gen-${Date.now()}`,
+      name: flowData.name,
+      time: new Date().toISOString(),
+      tag: flowData.tag,
+    };
+
+    setProjects((prev) => [...prev, project]);
+    setCurrentProject(project);
+
+    // Nodes and edges would typically be loaded from a database via projectId.
+    // For dynamic generation, we'll store them in the state for the current view.
+    setCurrentNodes(
+      flowData.nodes.map((n: any, i: number) => ({
+        ...n,
+        projectId: project.id,
+        componentId: `comp-${i}`,
+      }))
+    );
+    setCurrentEdges(
+      flowData.edges.map((e: any) => ({
+        ...e,
+        projectId: project.id,
+      }))
+    );
+  }, []);
 
   const value = useMemo<FlowStore>(() => ({
     currentProject,
@@ -47,7 +76,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setInventory,
     projects,
     setProjects,
-  }), [currentProject, currentNodes, currentEdges, inventory, projects]);
+    loadDynamicFlow,
+  }), [currentProject, currentNodes, currentEdges, inventory, projects, loadDynamicFlow]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

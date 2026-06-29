@@ -10,6 +10,10 @@ export async function generateBOM(prompt: string | null, image: File | null) {
     body: formData,
   });
 
-  if (!response.ok) throw new Error("Failed to generate BOM");
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = errorData.error || "Failed to generate BOM";
+    throw new Error(message);
+  }
   return await response.json();
 }
