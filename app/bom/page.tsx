@@ -28,7 +28,6 @@ import {
   updateProjectComponent,
   deleteProjectComponent,
 } from "@/lib/apis/project/client";
-import { downloadReport } from "@/lib/apis/pdf/client";
 import {
   ProjectCartSummary,
   ProjectComponentModel,
@@ -106,7 +105,6 @@ export default function BomScreen() {
     revertChanges,
     commitChanges,
     alerts,
-    specs,
     pdfReport,
     total,
     itemCount,
@@ -532,15 +530,41 @@ export default function BomScreen() {
             </DialogHeader>
             <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-white/10 overflow-hidden">
               {pdfUrl ? (
-                <iframe src={pdfUrl} className="h-full w-full" title="Specs Calculation Report" />
+                <iframe
+                  src={pdfUrl}
+                  className="h-full w-full"
+                  title="Specs Calculation Report"
+                />
               ) : (
-                <p className="text-sm text-muted-foreground">No PDF generated</p>
+                <p className="text-sm text-muted-foreground">
+                  No PDF generated
+                </p>
               )}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsPdfOpen(false)}>
-                Close
-              </Button>
+            <div className="flex items-center justify-between gap-2 mt-4">
+              <span className="rounded-full border border-white/50 bg-white/8 px-2.5 py-0.5 text-xs font-medium text-white">
+                AI Generated
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsPdfOpen(false)}>
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (pdfReport) {
+                      const url = URL.createObjectURL(pdfReport);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "specs-report.pdf";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }
+                  }}
+                >
+                  <Download size={16} className="mr-2" />
+                  Download
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
