@@ -36,6 +36,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useInspire } from "@/features/inspire/store";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -53,9 +54,17 @@ const suggestions = [
 ];
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("Generating...");
+  const {
+    prompt,
+    setPrompt,
+    selectedFiles,
+    addFile,
+    removeFile: removeFileFromStore,
+    isLoading,
+    loadingText,
+    generate,
+  } = useInspire();
+
   const [showTip, setShowTip] = useState(false);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
   const [previewImage, setPreviewImage] = useState<{
@@ -86,77 +95,25 @@ export default function Home() {
       return;
     }
 
-    setIsLoading(true);
     try {
-      const imageFile = selectedFiles.length > 0 ? selectedFiles[0].file : null;
-      
-      // Sanitize the prompt
-      const sanitizedPrompt = prompt ? prompt.replace(/[^\x00-\x7F]/g, "") : null;
-
-      // Stage 1: Calculate Specs
-      setLoadingText("Calculating specs...");
-      const specsData = await generateSpecs(sanitizedPrompt, imageFile);
-      const specsContext = JSON.stringify(specsData);
-
-      // Generate PDF
-      const pdfBytes = await downloadReport({ 
-        projectName: sanitizedPrompt || "Extracted Schematic", 
-        items: specsData.specs 
-      }, true) as ArrayBuffer;
-      
-      // Stage 2: Generate BOM
-      setLoadingText("Generating BOM...");
-      // Combine sanitized prompt with specs context
-      const combinedPrompt = sanitizedPrompt 
-        ? `${sanitizedPrompt}\n\nRELEVANT SPECS ANALYSIS:\n${specsContext}` 
-        : `Generate a BOM based on the following specs analysis:\n${specsContext}`;
-
-      const data = await generateBOM(combinedPrompt, imageFile);
-
-      const projectName = sanitizedPrompt ? sanitizedPrompt : "Extracted Schematic";
-      loadDynamicProject(
-        projectName,
-        data.tag || "N/A",
-        data.items,
-        data.alerts,
-        specsData,
-        new Blob([pdfBytes], { type: "application/pdf" }), // Store as Blob
-      );
-
-      router.push(
-        `/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`,
-      );
+      await generate(router, loadDynamicProject);
     } catch (e) {
       console.error(e);
-      setShowTip(true); // Fallback error handling
+      setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
-    } finally {
-      setIsLoading(false);
-      setLoadingText("Generating...");
     }
   };
 
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<
-    { file: File; preview: string }[]
-  >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File | null) => {
     if (!file) return;
-
-    // Create preview URL
-    const preview = URL.createObjectURL(file);
-    setSelectedFiles((prev) => [...prev, { file, preview }]);
+    addFile(file);
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles((prev) => {
-      const updated = [...prev];
-      URL.revokeObjectURL(updated[index].preview);
-      updated.splice(index, 1);
-      return updated;
-    });
+    removeFileFromStore(index);
     setPreviewImage(null);
   };
 
