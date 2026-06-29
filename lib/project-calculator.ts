@@ -1,27 +1,16 @@
-import { getAllItems } from "./inventory/client";
-import { ItemModel } from "./inventory/types";
-import { ProjectNodeModel } from "./project/types";
-import { getProjectNodes } from "./project/client";
+import { getProjectComponents } from "./project/client";
 
 export const calculateProjectCost = async (
   projectId: string,
 ): Promise<number> => {
-  let nodes: ProjectNodeModel[] = [];
+  const components = await getProjectComponents(projectId);
 
-  nodes = await getProjectNodes(projectId);
-
-  if (nodes.length === 0) {
+  if (components.length === 0) {
     return 0;
   }
 
-  const allInventory = await getAllItems();
-  const items: ItemModel[] = nodes
-    .map((node) => node.componentId)
-    .map((id) => allInventory.find((item) => item.id === id))
-    .filter((item) => item !== undefined);
-
-  const totalPrice = items.reduce(
-    (sum, item) => sum + item.unitPrice * item.qty,
+  const totalPrice = components.reduce(
+    (sum, component) => sum + component.unitPrice * component.qty,
     0,
   );
 
