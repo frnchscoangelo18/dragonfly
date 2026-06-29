@@ -23,7 +23,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Check, RotateCcw, Image, ChevronDown, Loader2 } from "lucide-react";
+import {
+  Check,
+  RotateCcw,
+  ChevronDown,
+  Loader2,
+  ImageIcon,
+} from "lucide-react";
 import {
   getAllProjects,
   getProjectNodes,
@@ -34,9 +40,12 @@ import {
   deleteProjectEdge,
 } from "@/lib/project/client";
 import { edgeColors } from "@/lib/project/constants";
-import { getAllComponents } from "@/lib/inventory/client";
-import { Component } from "@/lib/inventory/types";
-import { CustomNode, type ComponentNode } from "@/features/visual-flow/CustomNode";
+import { getAllItems } from "@/lib/inventory/client";
+import { ItemModel } from "@/lib/inventory/types";
+import {
+  CustomNode,
+  type ComponentNode,
+} from "@/features/visual-flow/CustomNode";
 import {
   ProjectEdgeModel,
   ProjectModel,
@@ -54,14 +63,14 @@ export default function FlowScreen() {
   );
   const [currentNodes, setCurrentNodes] = useState<ProjectNodeModel[]>([]);
   const [currentEdges, setCurrentEdges] = useState<ProjectEdgeModel[]>([]);
-  const [inventory, setInventory] = useState<Component[]>([]);
+  const [inventory, setInventory] = useState<ItemModel[]>([]);
 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Fetch initial project and component lists
   useEffect(() => {
-    Promise.all([getAllProjects(), getAllComponents()])
+    Promise.all([getAllProjects(), getAllItems()])
       .then(([projs, inv]) => {
         setProjects(projs);
         setInventory(inv);
@@ -148,7 +157,14 @@ export default function FlowScreen() {
       })),
     );
     setIsInitialized(true);
-  }, [projectNodes, projectEdges, setNodes, setEdges, setSelected, currentNodes.length]);
+  }, [
+    projectNodes,
+    projectEdges,
+    setNodes,
+    setEdges,
+    setSelected,
+    currentNodes.length,
+  ]);
 
   // Handle user drawing new connection lines between handles
   const onConnect = useCallback(
@@ -234,7 +250,9 @@ export default function FlowScreen() {
       const deletedEdges = currentEdges.filter(
         (original) => !edges.some((uiEdge) => uiEdge.id === original.id),
       );
-      const edgeDeletePromises = deletedEdges.map((e) => deleteProjectEdge(e.id));
+      const edgeDeletePromises = deletedEdges.map((e) =>
+        deleteProjectEdge(e.id),
+      );
 
       // 3. Identify edge additions
       const newEdges = edges.filter(
@@ -261,7 +279,8 @@ export default function FlowScreen() {
         return (
           original.sourceId !== uiEdge.source ||
           original.targetId !== uiEdge.target ||
-          (original.sourceHandle || "bottom") !== (uiEdge.sourceHandle || "bottom") ||
+          (original.sourceHandle || "bottom") !==
+            (uiEdge.sourceHandle || "bottom") ||
           (original.targetHandle || "top") !== (uiEdge.targetHandle || "top")
         );
       });
@@ -324,7 +343,8 @@ export default function FlowScreen() {
             e.id === uiEdge.id &&
             e.sourceId === uiEdge.source &&
             e.targetId === uiEdge.target &&
-            (e.sourceHandle || "bottom") === (uiEdge.sourceHandle || "bottom") &&
+            (e.sourceHandle || "bottom") ===
+              (uiEdge.sourceHandle || "bottom") &&
             (e.targetHandle || "top") === (uiEdge.targetHandle || "top"),
         );
       });
@@ -432,7 +452,7 @@ export default function FlowScreen() {
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="h-40 w-full rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground">
-              <Image size={48} opacity={0.4} />
+              <ImageIcon size={48} opacity={0.4} />
             </div>
             <div className="text-xs text-foreground/80 leading-relaxed">
               {selected?.specs}

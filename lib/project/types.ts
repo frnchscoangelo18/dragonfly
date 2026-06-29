@@ -1,4 +1,4 @@
-import { Component } from "../inventory/types";
+import { ItemModel } from "../inventory/types";
 
 export enum ConnectionEnum {
   POWER = "power",
@@ -58,7 +58,7 @@ export interface ProjectCartSummary {
   tag: ProjectTagEnum;
   timestamp: string;
   totalPrice: number;
-  items: (Component & { qtyPrice: number })[];
+  items: (ItemModel & { qtyPrice: number })[];
 }
 
 export interface ProjectModel {
@@ -81,4 +81,12 @@ export interface ProjectSubstituteModel {
   projectId: string;
   originalComponentId: string;
   substituteComponentId: string;
+}
+
+export interface ProjectComponentModel extends Omit<ItemModel, "id"> {
+  id: string;
+  projectId: string;
+  inventoryId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }

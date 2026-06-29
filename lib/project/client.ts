@@ -1,8 +1,9 @@
-import { 
-  ProjectModel, 
-  ProjectNodeModel, 
-  ProjectEdgeModel, 
-  ProjectSubstituteModel 
+import {
+  ProjectModel,
+  ProjectNodeModel,
+  ProjectEdgeModel,
+  ProjectSubstituteModel,
+  ProjectComponentModel,
 } from "./types";
 
 // const API_BASE = "/api/v1/projects";
@@ -20,7 +21,9 @@ export async function getProject(id: string): Promise<ProjectModel> {
   return res.json();
 }
 
-export async function createProject(project: ProjectModel): Promise<ProjectModel> {
+export async function createProject(
+  project: ProjectModel,
+): Promise<ProjectModel> {
   const res = await fetch(API_BASE, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -30,7 +33,10 @@ export async function createProject(project: ProjectModel): Promise<ProjectModel
   return res.json();
 }
 
-export async function updateProject(id: string, project: Partial<ProjectModel>): Promise<ProjectModel> {
+export async function updateProject(
+  id: string,
+  project: Partial<ProjectModel>,
+): Promise<ProjectModel> {
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -46,13 +52,18 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 // Project Specific Data
-export async function getProjectNodes(projectId: string): Promise<ProjectNodeModel[]> {
+export async function getProjectNodes(
+  projectId: string,
+): Promise<ProjectNodeModel[]> {
   const res = await fetch(`${API_BASE}/${projectId}/nodes`);
   if (!res.ok) throw new Error("Failed to fetch project nodes");
   return res.json();
 }
 
-export async function updateProjectNode(nodeId: string, updated: Partial<ProjectNodeModel>): Promise<ProjectNodeModel> {
+export async function updateProjectNode(
+  nodeId: string,
+  updated: Partial<ProjectNodeModel>,
+): Promise<ProjectNodeModel> {
   const res = await fetch(`${API_BASE}/nodes/${nodeId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -62,13 +73,18 @@ export async function updateProjectNode(nodeId: string, updated: Partial<Project
   return res.json();
 }
 
-export async function getProjectEdges(projectId: string): Promise<ProjectEdgeModel[]> {
+export async function getProjectEdges(
+  projectId: string,
+): Promise<ProjectEdgeModel[]> {
   const res = await fetch(`${API_BASE}/${projectId}/edges`);
   if (!res.ok) throw new Error("Failed to fetch project edges");
   return res.json();
 }
 
-export async function updateProjectEdge(edgeId: string, updated: Partial<ProjectEdgeModel>): Promise<ProjectEdgeModel> {
+export async function updateProjectEdge(
+  edgeId: string,
+  updated: Partial<ProjectEdgeModel>,
+): Promise<ProjectEdgeModel> {
   const res = await fetch(`${API_BASE}/edges/${edgeId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -78,7 +94,9 @@ export async function updateProjectEdge(edgeId: string, updated: Partial<Project
   return res.json();
 }
 
-export async function createProjectEdge(edge: ProjectEdgeModel): Promise<ProjectEdgeModel> {
+export async function createProjectEdge(
+  edge: ProjectEdgeModel,
+): Promise<ProjectEdgeModel> {
   const res = await fetch(`${API_BASE}/edges`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -95,8 +113,31 @@ export async function deleteProjectEdge(edgeId: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete project edge");
 }
 
-export async function getProjectSubstitutes(projectId: string): Promise<ProjectSubstituteModel[]> {
+export async function getProjectSubstitutes(
+  projectId: string,
+): Promise<ProjectSubstituteModel[]> {
   const res = await fetch(`${API_BASE}/${projectId}/substitutes`);
   if (!res.ok) throw new Error("Failed to fetch project substitutes");
+  return res.json();
+}
+
+export async function getProjectComponents(
+  projectId: string,
+): Promise<ProjectComponentModel[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/components`);
+  if (!res.ok) throw new Error("Failed to fetch project components");
+  return res.json();
+}
+
+export async function createProjectComponent(
+  projectId: string,
+  component: Omit<ProjectComponentModel, "projectId">,
+): Promise<ProjectComponentModel> {
+  const res = await fetch(`${API_BASE}/${projectId}/components`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(component),
+  });
+  if (!res.ok) throw new Error("Failed to create project component");
   return res.json();
 }

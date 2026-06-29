@@ -1,5 +1,5 @@
-import { getAllComponents } from "./inventory/client";
-import { Component } from "./inventory/types";
+import { getAllItems } from "./inventory/client";
+import { ItemModel } from "./inventory/types";
 import { ProjectNodeModel } from "./project/types";
 import { getProjectNodes } from "./project/client";
 
@@ -14,8 +14,8 @@ export const calculateProjectCost = async (
     return 0;
   }
 
-  const allInventory = await getAllComponents();
-  const items: Component[] = nodes
+  const allInventory = await getAllItems();
+  const items: ItemModel[] = nodes
     .map((node) => node.componentId)
     .map((id) => allInventory.find((item) => item.id === id))
     .filter((item) => item !== undefined);
