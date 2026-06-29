@@ -7,15 +7,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getAllProjects, getProjectComponents } from "@/lib/project/client";
-import { ItemModel, StockStatus } from "@/lib/inventory/types";
+import { getAllProjects, getProjectComponents } from "@/lib/apis/project/client";
+import { ItemModel, StockStatus } from "@/lib/apis/inventory/types";
 import {
   ProjectCartSummary,
   ProjectTagEnum,
   ProjectComponentModel,
-} from "@/lib/project/types";
+} from "@/lib/apis/project/types";
 import { BomAlert } from "./data";
-import { getAllItems } from "@/lib/inventory/client";
+import { getAllItems } from "@/lib/apis/inventory/client";
 
 interface BomStore {
   components: ProjectComponentModel[];

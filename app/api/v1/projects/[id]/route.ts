@@ -3,7 +3,7 @@ import {
   getProjectById,
   updateProject,
   deleteProject,
-} from "@/lib/project/json/server";
+} from "@/lib/apis/project/json/server";
 
 type Params = Promise<{ id: string }>;
 

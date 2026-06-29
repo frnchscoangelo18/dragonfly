@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { calculateProjectCost } from "@/lib/project-calculator";
+import { calculateProjectCost } from "@/lib/apis/project-calculator";
 import {
   ProjectCartSummary,
   ProjectDefinition,
   ProjectModel,
-} from "@/lib/project/types";
+} from "@/lib/apis/project/types";
 
 export function ProjectCost({
   project,

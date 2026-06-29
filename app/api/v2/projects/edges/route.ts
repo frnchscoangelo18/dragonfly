@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createEdge } from '@/lib/project/supabase/server';
+import { createEdge } from '@/lib/apis/project/supabase/server';
 
 export async function POST(request: Request) {
   try {

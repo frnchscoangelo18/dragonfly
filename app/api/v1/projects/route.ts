@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAllProjects, createProject } from "@/lib/project/json/server";
+import { getAllProjects, createProject } from "@/lib/apis/project/json/server";
 
 export async function GET() {
   const projects = await getAllProjects();

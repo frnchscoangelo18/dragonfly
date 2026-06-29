@@ -3,7 +3,7 @@ import {
   getItemById,
   updateItem,
   deleteItem,
-} from "@/lib/inventory/json/server";
+} from "@/lib/apis/inventory/json/server";
 
 type Params = Promise<{ id: string }>;
 

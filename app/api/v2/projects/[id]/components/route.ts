@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getComponentsByProjectId, createComponent } from '@/lib/project/supabase/server';
+import { getComponentsByProjectId, createComponent } from '@/lib/apis/project/supabase/server';
 
 type Params = Promise<{ id: string }>;
 

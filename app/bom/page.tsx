@@ -27,16 +27,16 @@ import {
   createProjectComponent,
   updateProjectComponent,
   deleteProjectComponent,
-} from "@/lib/project/client";
+} from "@/lib/apis/project/client";
 import {
   ProjectCartSummary,
   ProjectComponentModel,
   ProjectTagEnum,
   type ProjectModel,
-} from "@/lib/project/types";
+} from "@/lib/apis/project/types";
 import { ProjectCost } from "@/components/ProjectCost";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { StockStatus } from "@/lib/inventory/types";
+import { StockStatus } from "@/lib/apis/inventory/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

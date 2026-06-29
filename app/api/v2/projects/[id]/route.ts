@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getProjectById, updateProject, deleteProject } from '@/lib/project/supabase/server';
+import { getProjectById, updateProject, deleteProject } from '@/lib/apis/project/supabase/server';
 
 type Params = Promise<{ id: string }>;
 

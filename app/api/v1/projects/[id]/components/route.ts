@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getComponentsByProjectId, createComponent } from '@/lib/project/json/server';
+import { getComponentsByProjectId, createComponent } from '@/lib/apis/project/json/server';
 
 type Params = Promise<{ id: string }>;
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createEdge } from "@/lib/project/json/server";
+import { createEdge } from "@/lib/apis/project/json/server";
 
 export async function POST(request: Request) {
   try {

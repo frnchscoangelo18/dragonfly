@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSubstitutesByProjectId } from '@/lib/project/supabase/server';
+import { getSubstitutesByProjectId } from '@/lib/apis/project/supabase/server';
 
 type Params = Promise<{ id: string }>;
 

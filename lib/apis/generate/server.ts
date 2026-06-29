@@ -1,0 +1,83 @@
+import { GoogleGenAI } from "@google/genai";
+import { BomExtractionSchema } from "@/lib/schemas/bomSchema";
+import { resolveComponentPricing } from "@/lib/pricing";
+import { ItemModel, StockStatus } from "@/lib/apis/inventory/types";
+import { type BomAlert } from "@/features/bom/data";
+import { ProjectTagEnum } from "@/lib/apis/project/types";
+
+// Initialize Gen AI SDK
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+export async function generateBomLogic(prompt: string | null, image: File | null) {
+  // 1. Prepare inputs for Gemini
+  const contents = [];
+  if (image) {
+    const buffer = Buffer.from(await image.arrayBuffer());
+    contents.push({
+      inlineData: {
+        data: buffer.toString("base64"),
+        mimeType: image.type,
+      },
+    });
+  }
+  if (prompt) {
+    contents.push({ text: prompt });
+  }
+
+  // 2. Call Gemini for Nodal Computation & Extraction
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: contents,
+    config: {
+      systemInstruction: `You are an expert Electronics Engineer and System Architect. Your task is to analyze the provided electronic schematic image alongside the user's natural language description.
+
+CRITICAL INSTRUCTIONS:
+1. Nodal & Parametric Computation: Analyze the circuit layout and operating voltages. Calculate the required electrical ratings (Voltage, Current, Power dissipation P = V * I) for every discrete component.
+2. Smart Component Selection: Select industrial, purchasable components that safely meet or exceed these ratings. If a standard component (e.g., BC547) cannot handle the calculated power dissipation, automatically upgrade it to a robust alternative (e.g., TIP120 or IRFZ44N) and note the reasoning in the specs.
+3. Accuracy: Ensure exact part numbers are provided.
+4. Alerts: If you detect a missing flyback diode for an inductive load or a voltage logic mismatch (e.g., 5V logic trying to trigger a 3.3V IC without a level shifter), add a compatibility alert.`,
+      responseMimeType: "application/json",
+      responseSchema: BomExtractionSchema,
+    },
+  });
+
+  // Parse the structured JSON response
+  const extraction = JSON.parse(response.text || "{}") as {
+    items: ItemModel[];
+    alerts: BomAlert[];
+    tag: ProjectTagEnum;
+  };
+  const extractedItems = extraction.items || [];
+
+  // 3. Pricing Engine Logic
+  const itemsWithPricing = await Promise.all(
+    extractedItems.map(async (item: ItemModel, index: number) => {
+      // Run real web search / scraping
+      const storeOptions = await resolveComponentPricing(
+        item.name,
+        item.partNumber,
+      );
+
+      // Find the cheapest to set as default
+      const cheapestOption =
+        storeOptions.find((s) => s.isCheapest) || storeOptions[0];
+
+      return {
+        ...item,
+        id: `c-gen-${Date.now()}-${index}`,
+        storeOptions,
+        // Hydrate the default frontend expectations based on cheapest option
+        unitPrice: cheapestOption ? cheapestOption.price : 0,
+        stock: cheapestOption?.inStock
+          ? StockStatus.IN_STOCK
+          : StockStatus.OUT,
+      };
+    }),
+  );
+
+  return {
+    items: itemsWithPricing,
+    alerts: extraction.alerts || [],
+    tag: extraction.tag || "N/A",
+  };
+}
