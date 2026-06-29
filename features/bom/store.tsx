@@ -33,6 +33,7 @@ interface BomStore {
   swap: (id: string, next: Omit<ProjectComponentModel, "qty">) => void;
   revertChanges: () => void;
   commitChanges: () => void;
+  clearProject: () => void;
   loadProject: (projectName: string) => Promise<void>;
   loadDynamicProject: (
     projectName: string,
@@ -94,6 +95,17 @@ export function BomProvider({ children }: { children: ReactNode }) {
     setSpecs(newSpecs);
     setPdfReport(newPdfReport); // Added
   };
+
+  const clearProject = useCallback(() => {
+    setProjectInfo(null);
+    setComponents([]);
+    setOriginalComponents([]);
+    setHasUnsavedChanges(false);
+    setAlerts([]);
+    setSpecs(null);
+    setPdfReport(null);
+  }, []);
+
   const pushToCart = useCallback(
     (summary: Omit<ProjectCartSummary, "totalPrice">) => {
       const totalPrice = summary.items.reduce((s, i) => s + i.qtyPrice, 0);
@@ -154,6 +166,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
         setOriginalComponents(components);
         setHasUnsavedChanges(false);
       },
+      clearProject: clearProject,
       loadProject: async (name) => await loadProject(name),
       loadDynamicProject,
       pushToCart,
