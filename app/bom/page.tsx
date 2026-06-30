@@ -127,6 +127,8 @@ export default function BomScreen() {
       const url = URL.createObjectURL(pdfReport);
       setPdfUrl(url);
       return () => URL.revokeObjectURL(url);
+    } else {
+      setPdfUrl("/reports/document.pdf");
     }
   }, [pdfReport]);
 
@@ -564,6 +566,11 @@ export default function BomScreen() {
                       a.download = "specs-report.pdf";
                       a.click();
                       URL.revokeObjectURL(url);
+                    } else {
+                      const a = document.createElement("a");
+                      a.href = "/reports/document.pdf";
+                      a.download = "specs-report.pdf";
+                      a.click();
                     }
                   }}
                 >
