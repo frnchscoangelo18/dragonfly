@@ -13,23 +13,27 @@ import {
   ProjectModel,
   ProjectNodeModel,
   ProjectEdgeModel,
+  ProjectComponentModel,
+  ProjectNode,
+  ProjectEdge,
 } from "@/lib/apis/project/types";
 import { ItemModel } from "@/lib/apis/inventory/types";
+import { GeneratedFlow } from "@/lib/apis/generate/types";
 
 interface FlowStore {
   currentProject: ProjectModel | null;
-  setCurrentProject: (project: ProjectModel | null) => void;
+  setCurrentProject: Dispatch<SetStateAction<ProjectModel | null>>;
   currentNodes: ProjectNodeModel[];
-  setCurrentNodes: (nodes: ProjectNodeModel[]) => void;
+  setCurrentNodes: Dispatch<SetStateAction<ProjectNodeModel[]>>;
   currentEdges: ProjectEdgeModel[];
-  setCurrentEdges: (edges: ProjectEdgeModel[]) => void;
+  setCurrentEdges: Dispatch<SetStateAction<ProjectEdgeModel[]>>;
   projectComponents: ProjectComponentModel[];
-  setProjectComponents: (components: ProjectComponentModel[]) => void;
+  setProjectComponents: Dispatch<SetStateAction<ProjectComponentModel[]>>;
   inventory: ItemModel[];
-  setInventory: (inventory: ItemModel[]) => void;
+  setInventory: Dispatch<SetStateAction<ItemModel[]>>;
   projects: ProjectModel[];
   setProjects: Dispatch<SetStateAction<ProjectModel[]>>;
-  loadDynamicFlow: (flowData: any) => void;
+  loadDynamicFlow: (flowData: GeneratedFlow) => void;
 }
 
 const Ctx = createContext<FlowStore | null>(null);
@@ -48,7 +52,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
 
   const loadDynamicFlow = useCallback(
     (
-      flowData: any,
+      flowData: GeneratedFlow,
       overrideProject?: ProjectModel,
       overrideNodes?: ProjectNodeModel[],
       overrideEdges?: ProjectEdgeModel[],
@@ -70,7 +74,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         setCurrentNodes(overrideNodes);
       } else {
         setCurrentNodes(
-          flowData.nodes.map((n: any, i: number) => ({
+          flowData.nodes.map((n: ProjectNode, i: number) => ({
             id: `node-gen-${Date.now()}-${i}`,
             projectId: project.id,
             componentId: `comp-gen-${i}`,
@@ -84,7 +88,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
         setCurrentEdges(overrideEdges);
       } else {
         setCurrentEdges(
-          flowData.edges.map((e: any, i: number) => ({
+          flowData.edges.map((e: ProjectEdge, i: number) => ({
             id: `edge-gen-${Date.now()}-${i}`,
             projectId: project.id,
             sourceId: e.sourceId,

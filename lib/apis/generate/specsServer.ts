@@ -1,11 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { SpecsExtractionSchema } from "./specsSchema";
 import { getNextApiKey } from "./keyCycler";
+import { GeneratedSpecs } from "./types";
 
 export async function generateSpecsLogic(
   prompt: string | null,
   image: File | null,
-) {
+): Promise<GeneratedSpecs> {
   const ai = new GoogleGenAI({ apiKey: getNextApiKey() });
   const contents = [];
   if (image) {

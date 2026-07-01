@@ -1,6 +1,8 @@
 "use client";
 import {
   createContext,
+  Dispatch,
+  SetStateAction,
   useCallback,
   useContext,
   useMemo,
@@ -21,8 +23,19 @@ import {
 } from "@/lib/apis/project/client";
 import { createItem } from "@/lib/apis/inventory/client";
 import { uploadToStorage } from "@/lib/apis/storage/client";
-import { GeneratedBOMItem, GeneratedSpecs, GeneratedFlow } from "@/lib/apis/generate/types";
-import { ProjectComponentModel, ProjectTagEnum } from "@/lib/apis/project/types";
+import {
+  GeneratedBOMItem,
+  GeneratedSpecs,
+  GeneratedFlow,
+} from "@/lib/apis/generate/types";
+import {
+  ProjectComponentModel,
+  ProjectEdge,
+  ProjectEdgeModel,
+  ProjectNode,
+  ProjectNodeModel,
+  ProjectTagEnum,
+} from "@/lib/apis/project/types";
 import { ItemCategory } from "@/lib/apis/inventory/types";
 import { BomAlert } from "@/features/bom/data";
 
@@ -33,7 +46,7 @@ interface SelectedFile {
 
 interface InspireStore {
   prompt: string;
-  setPrompt: (prompt: string) => void;
+  setPrompt: Dispatch<SetStateAction<string>>;
   selectedFiles: SelectedFile[];
   addFile: (file: File) => void;
   removeFile: (index: number) => void;
@@ -43,13 +56,13 @@ interface InspireStore {
     router: any,
     loadDynamicProject: (
       projectName: string,
-      tag: any,
-      newComponents: any[],
-      newAlerts?: any[],
-      newSpecs?: any,
+      tag: ProjectTagEnum,
+      newComponents: ProjectComponentModel[],
+      newAlerts?: BomAlert[],
+      newSpecs?: GeneratedSpecs,
       newPdfReport?: Blob | null,
     ) => void,
-    loadDynamicFlow: (flowData: any) => void,
+    loadDynamicFlow: (flowData: GeneratedFlow) => void,
   ) => Promise<void>;
   setLoadingState: (loading: boolean, text?: string) => void;
 }
@@ -88,7 +101,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
       router: any,
       loadDynamicProject: (
         projectName: string,
-        tag: ProjectTagEnum | string,
+        tag: ProjectTagEnum,
         newComponents: ProjectComponentModel[],
         newAlerts?: BomAlert[],
         newSpecs?: GeneratedSpecs,
@@ -120,7 +133,11 @@ export function InspireProvider({ children }: { children: ReactNode }) {
         // 2. BOM
         setLoadingTextState("Generating BOM...");
         const bomResult = await withRetry(async () => {
-          return await generateBOM(specsContext, imageFile, generationTimestamp);
+          return await generateBOM(
+            specsContext,
+            imageFile,
+            generationTimestamp,
+          );
         });
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -189,7 +206,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           // 2. Save Inventory Items & Link to Project Components
           const componentIdMap: Record<string, string> = {};
           const projectComponents: ProjectComponentModel[] = [];
-          
+
           await Promise.all(
             bomResult.items.map(async (item: GeneratedBOMItem, idx: number) => {
               // Map AI category to valid ItemCategory enum
@@ -205,7 +222,8 @@ export function InspireProvider({ children }: { children: ReactNode }) {
                 Networking: ItemCategory.Logic,
                 Mechatronics: ItemCategory.Actuator,
               };
-              const validCategory = categoryMap[item.category] || ItemCategory.Logic;
+              const validCategory =
+                categoryMap[item.category] || ItemCategory.Logic;
 
               // Item already created in generateBomLogic, but ensure it's consistent
               const newItem = await createItem({
@@ -260,7 +278,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           const createdNodes: ProjectNodeModel[] = [];
           if (flowResult && flowResult.nodes) {
             await Promise.all(
-              flowResult.nodes.map(async (node: any) => {
+              flowResult.nodes.map(async (node: ProjectNode) => {
                 const compId = componentIdMap[node.id];
 
                 if (!compId) {
@@ -272,7 +290,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
 
                 const nodeId = `node-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 nodeDbIds[node.id] = nodeId;
-                
+
                 const createdNode = await createProjectNode({
                   id: nodeId,
                   projectId: project.id,
@@ -289,7 +307,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           const createdEdges: ProjectEdgeModel[] = [];
           if (flowResult && flowResult.edges) {
             await Promise.all(
-              flowResult.edges.map(async (edge: any) => {
+              flowResult.edges.map(async (edge: ProjectEdge) => {
                 const sourceId = nodeDbIds[edge.sourceId];
                 const targetId = nodeDbIds[edge.targetId];
 
@@ -315,7 +333,13 @@ export function InspireProvider({ children }: { children: ReactNode }) {
 
           // Synchronize store with real DB data to prevent disappearing nodes and dummy data
           if (flowResult) {
-            loadDynamicFlow(flowResult, project, createdNodes, createdEdges, projectComponents);
+            loadDynamicFlow(
+              flowResult,
+              // project,
+              // createdNodes,
+              // createdEdges,
+              // projectComponents,
+            );
           }
 
           // 5. Upload Specs PDF to Storage

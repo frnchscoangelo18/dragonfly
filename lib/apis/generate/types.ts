@@ -1,5 +1,6 @@
 import { ItemDetails, StockStatus } from "@/lib/apis/inventory/types";
 import { BomAlert } from "@/features/bom/data";
+import { ProjectEdge, ProjectNode, ProjectTagEnum } from "../project/types";
 
 export interface GeneratedSpecs {
   specs: Array<{
@@ -38,13 +39,7 @@ export interface GeneratedBOM {
 
 export interface GeneratedFlow {
   name: string;
-  tag: "Robotics" | "IoT" | "Power" | "Networking" | "Mechatronics" | "N/A";
-  nodes: Array<{ id: string; positionX: number; positionY: number }>;
-  edges: Array<{
-    id: string;
-    sourceId: string;
-    targetId: string;
-    label: string;
-    type: "power" | "signal" | "logic" | "i2c";
-  }>;
+  tag: ProjectTagEnum;
+  nodes: ProjectNode[];
+  edges: ProjectEdge[];
 }
