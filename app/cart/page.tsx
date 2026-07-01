@@ -13,12 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { categoryIcons } from "@/lib/project/constants";
+import { categoryIcons } from "@/lib/apis/project/constants";
 import { ProjectCost } from "@/components/ProjectCost";
+import { useCart } from "@/features/cart/store";
 
 export default function CartScreen() {
   const { pushedHistory, moveToLastCart } = useBom();
-  const [isListModalOpen, setIsListModalOpen] = useState(false);
+  const { isListModalOpen, setIsListModalOpen } = useCart();
 
   const lastCart = pushedHistory[pushedHistory.length - 1];
 

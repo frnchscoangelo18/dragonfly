@@ -5,6 +5,10 @@ import "./globals.css";
 import "reactflow/dist/style.css";
 import { MobileShell } from "@/components/MobileShell";
 import { SheetProvider } from "@/lib/sheet-context";
+import { Toaster } from "@/components/ui/sonner";
+import { InspireProvider } from "@/features/inspire/store";
+import { FlowProvider } from "@/features/visual-flow/store";
+import { CartProvider } from "@/features/cart/store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +37,16 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <BomProvider>
-          <SheetProvider>
-            <MobileShell>{children}</MobileShell>
-          </SheetProvider>
+          <InspireProvider>
+            <FlowProvider>
+              <CartProvider>
+                <SheetProvider>
+                  <MobileShell>{children}</MobileShell>
+                  <Toaster position="top-center" theme="dark" />
+                </SheetProvider>
+              </CartProvider>
+            </FlowProvider>
+          </InspireProvider>
         </BomProvider>
       </body>
     </html>

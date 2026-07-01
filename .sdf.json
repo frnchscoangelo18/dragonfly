@@ -1,0 +1,68 @@
+{
+  "projectName": "Bluetooth audio amp, 2x3W class-D",
+  "items": [
+    {
+      "componentName": "Class-D Amplifier IC",
+      "computedSpecs": "Output Power: 2 x 3W into 4 Ohms, Supply Voltage: 5V, Max Current Draw: 1.333 A",
+      "reasoning": "The amplifier needs to deliver 2x3W into 4 Ohm speakers. A common supply voltage for this power level in Class-D amplifiers is 5V. The maximum current draw is calculated based on the total output power and an assumed efficiency of 90%.",
+      "calculation": {
+        "formula": "Total Output Power (P_out_total) = 2 * 3W = 6W; Assumed Efficiency (η) = 90% (0.9); Input Power (P_in_amp) = P_out_total / η; Max Current Draw (I_max_amp) = P_in_amp / Supply Voltage (V_CC)",
+        "result": "(6W / 0.9) / 5V = 1.333 A"
+      }
+    },
+    {
+      "componentName": "Speakers",
+      "computedSpecs": "Power Handling: 3W (minimum) per speaker, Impedance: 4 Ohms",
+      "reasoning": "To match the amplifier's output specification of 3W per channel, the speakers must be rated for at least 3W. A 4 Ohm impedance is standard for this amplifier power level to achieve the specified output.",
+      "calculation": {
+        "formula": "P_out_channel = 3W; R_load = 4 Ohms",
+        "result": "3W, 4 Ohms"
+      }
+    },
+    {
+      "componentName": "DC Power Supply",
+      "computedSpecs": "Output Voltage: 5V, Output Current: At least 1.5 A",
+      "reasoning": "The power supply must provide the operating voltage for the amplifier IC and the Bluetooth module. The total current required is the sum of the amplifier's peak current (1.333A) and the Bluetooth module's average current (assumed 0.030A), plus a safety margin.",
+      "calculation": {
+        "formula": "Required Current = Max Amplifier Current + Bluetooth Module Average Current; Total Current = 1.333 A + 0.030 A",
+        "result": "1.363 A (recommended capacity: 1.5 A)"
+      }
+    },
+    {
+      "componentName": "Input Coupling Capacitors (for amplifier)",
+      "computedSpecs": "Capacitance: 1 µF (minimum), Voltage Rating: 10V (minimum)",
+      "reasoning": "These capacitors block DC bias from the audio source, preventing it from affecting the amplifier's input stage. The value is calculated to achieve a low-frequency cutoff of 20 Hz, assuming a typical amplifier input impedance of 10 kOhms.",
+      "calculation": {
+        "formula": "C_in = 1 / (2 * π * f_c * R_in), where f_c = 20 Hz and R_in = 10 kOhms",
+        "result": "1 / (2 * 3.14159 * 20 Hz * 10000 Ohms) = 0.796 µF (select 1 µF standard value)"
+      }
+    },
+    {
+      "componentName": "Output Inductors (LC Filter, per channel)",
+      "computedSpecs": "Inductance: 10-22 µH (e.g., 15 µH), Current Rating: >1.25 A",
+      "reasoning": "For a Class-D amplifier, inductors form part of the LC filter, which is crucial for reconstructing the analog audio signal from the amplifier's PWM output and reducing EMI. The inductance value is typical for 3W into 4 Ohms, and the current rating must exceed the peak speaker current.",
+      "calculation": {
+        "formula": "Peak Speaker Current (I_peak_speaker) = sqrt(2 * P_out_channel / R_load); I_peak_speaker = sqrt(2 * 3W / 4 Ohms)",
+        "result": "I_peak_speaker = 1.22 A (typical inductance 15 µH)"
+      }
+    },
+    {
+      "componentName": "Output Capacitors (LC Filter, per channel)",
+      "computedSpecs": "Capacitance: 0.47-1 µF (e.g., 0.68 µF), Voltage Rating: >5V",
+      "reasoning": "These capacitors complete the LC output filter for the Class-D amplifier, working with the inductors to smooth the PWM waveform into an analog signal for the speaker.",
+      "calculation": {
+        "formula": "Typical value for Class-D LC filter (component choice based on common designs)",
+        "result": "0.68 µF (typical)"
+      }
+    },
+    {
+      "componentName": "Bluetooth Audio Module",
+      "computedSpecs": "Supply Voltage: 5V (or 3.3V with regulator), Average Current Consumption: ~30 mA",
+      "reasoning": "This module provides the wireless audio input. Its power requirements contribute to the overall system power budget. A 5V supply is assumed to simplify power management with the amplifier, or a regulator would be needed for a 3.3V module.",
+      "calculation": {
+        "formula": "Average Power (P_BT) = Supply Voltage (V_supply) * Average Current (I_BT_avg)",
+        "result": "5V * 0.030 A = 0.15 W"
+      }
+    }
+  ]
+}

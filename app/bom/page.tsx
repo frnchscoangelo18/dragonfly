@@ -14,21 +14,36 @@ import {
   Wifi,
   Network,
   Cpu,
+  FileText,
+  Download,
 } from "lucide-react";
 import { useBom } from "@/features/bom/store";
 import { ComponentCard } from "@/features/bom/ComponentCard";
 import { SubstituteSheet } from "@/features/bom/SubstituteSheet";
 import { compatibilityAlerts } from "@/features/bom/data";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getAllProjects } from "@/lib/project/client";
+import {
+  getAllProjects,
+  createProjectComponent,
+  updateProjectComponent,
+  deleteProjectComponent,
+} from "@/lib/apis/project/client";
 import {
   ProjectCartSummary,
+  ProjectComponentModel,
   ProjectTagEnum,
   type ProjectModel,
-} from "@/lib/project/types";
+} from "@/lib/apis/project/types";
 import { ProjectCost } from "@/components/ProjectCost";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { Component, StockStatus } from "@/lib/inventory/types";
+import { StockStatus } from "@/lib/apis/inventory/types";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -83,14 +98,39 @@ function ProjectItem({
 }
 
 export default function BomScreen() {
-  const { items, alerts, total, itemCount, loadProject, pushToCart } = useBom();
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const {
+    components,
+    originalComponents,
+    hasUnsavedChanges,
+    revertChanges,
+    commitChanges,
+    alerts,
+    pdfReport,
+    total,
+    itemCount,
+    loadProject,
+    pushToCart,
+    projectInfo,
+    clearProject,
+  } = useBom();
   const [projects, setProjects] = useState<ProjectModel[]>([]);
-  const [sub, setSub] = useState<Component | null>(null);
+  const [sub, setSub] = useState<ProjectComponentModel | null>(null); // Note: updated to use ProjectComponentModel
   const [alertDismissed, setAlertDismissed] = useState(false);
   const [checkout, setCheckout] = useState<"idle" | "loading" | "done">("idle");
+  const [isPdfOpen, setIsPdfOpen] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (pdfReport) {
+      const url = URL.createObjectURL(pdfReport);
+      setPdfUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPdfUrl("/reports/document.pdf");
+    }
+  }, [pdfReport]);
 
   const generate = searchParams?.get("generate");
   const prompt = searchParams?.get("prompt");
@@ -99,27 +139,30 @@ export default function BomScreen() {
     async function init() {
       try {
         const data = await getAllProjects();
-        setProjects(data);
+        setProjects((prev) => {
+          // Merge backend projects with any dynamic projects already in state
+          const combined = [...data, ...prev.filter(p => !data.find(bp => bp.id === p.id))];
+          return combined;
+        });
 
         if ((generate === "true" || generate === "dynamic") && prompt) {
           const decodedPrompt = decodeURIComponent(prompt);
-          setSelectedProject(decodedPrompt);
-          // We should probably also load the project data here if it's a dynamic one,
-          // but for now, we'll just set the active project name.
+          if (!projectInfo || projectInfo.name !== decodedPrompt) {
+            loadProject(decodedPrompt);
+          }
         }
       } catch (e) {
         console.error("Failed to initialize BOM screen", e);
       }
     }
     init();
-  }, [generate, prompt]);
+  }, [generate, prompt, projectInfo, loadProject]);
 
   const handleSelectProject = (projectName: string) => {
-    setSelectedProject(projectName);
     loadProject(projectName);
   };
 
-  if (!selectedProject) {
+  if (!projectInfo) {
     return (
       <div className="flex flex-col gap-6 px-5 pt-14 pb-48">
         <header>
@@ -143,42 +186,98 @@ export default function BomScreen() {
     );
   }
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     setCheckout("loading");
-    setTimeout(() => setCheckout("done"), 1400);
+
+    if (projectInfo) {
+      const project = projects.find((p) => p.name === projectInfo.name);
+      if (project) {
+        try {
+          const deletes = originalComponents.filter(
+            (oc) => !components.some((c) => c.id === oc.id),
+          );
+          const creates = components.filter(
+            (c) => !originalComponents.some((oc) => oc.id === c.id),
+          );
+          const updates = components.filter((c) => {
+            const oc = originalComponents.find((o) => o.id === c.id);
+            if (!oc) return false;
+            return (
+              c.qty !== oc.qty ||
+              c.inventoryId !== oc.inventoryId ||
+              c.unitPrice !== oc.unitPrice ||
+              c.name !== oc.name
+            );
+          });
+
+          await Promise.all(
+            deletes.map((c) => deleteProjectComponent(project.id, c.id)),
+          );
+          await Promise.all(
+            creates.map((c) => {
+              const {
+                projectId,
+                createdAt,
+                updatedAt,
+                stock,
+                stockCount,
+                ...rest
+              } = c;
+              return createProjectComponent(project.id, rest as any);
+            }),
+          );
+          await Promise.all(
+            updates.map((c) => {
+              const {
+                id,
+                projectId,
+                createdAt,
+                updatedAt,
+                stock,
+                stockCount,
+                ...rest
+              } = c;
+              return updateProjectComponent(project.id, c.id, rest as any);
+            }),
+          );
+
+          commitChanges();
+        } catch (e) {
+          console.error("Failed to sync changes", e);
+        }
+
+        const summary: Omit<ProjectCartSummary, "totalPrice"> = {
+          id: `${project.name}-${Date.now()}`,
+          name: project.name,
+          tag: project.tag,
+          timestamp: new Date().toLocaleString(),
+          items: components.map((item) => ({
+            ...item,
+            qtyPrice: item.unitPrice * item.qty,
+          })),
+        };
+        pushToCart(summary);
+      } else if (components.length > 0) {
+        // Dynamic AI Project
+        const summary: Omit<ProjectCartSummary, "totalPrice"> = {
+          id: `dynamic-${Date.now()}`,
+          name: projectInfo.name,
+          tag: ProjectTagEnum.NA,
+          timestamp: new Date().toLocaleString(),
+          items: components.map((item) => ({
+            ...item,
+            qtyPrice: item.unitPrice * item.qty,
+          })),
+        };
+        pushToCart(summary);
+      }
+    }
+
+    setCheckout("done");
     setTimeout(() => {
       setCheckout("idle");
-      if (selectedProject) {
-        const project = projects.find((p) => p.name === selectedProject);
-        if (project) {
-          const summary: Omit<ProjectCartSummary, "totalPrice"> = {
-            id: `${project.name}-${Date.now()}`,
-            name: project.name,
-            tag: project.tag,
-            timestamp: new Date().toLocaleString(),
-            items: items.map((item) => ({
-              ...item,
-              qtyPrice: item.unitPrice * item.qty,
-            })),
-          };
-          pushToCart(summary);
-        } else if (items.length > 0) {
-          // Dynamic AI Project
-          const summary: Omit<ProjectCartSummary, "totalPrice"> = {
-            id: `dynamic-${Date.now()}`,
-            name: selectedProject,
-            tag: ProjectTagEnum.NA,
-            timestamp: new Date().toLocaleString(),
-            items: items.map((item) => ({
-              ...item,
-              qtyPrice: item.unitPrice * item.qty,
-            })),
-          };
-          pushToCart(summary);
-        }
-      }
       router.push("/cart");
-    }, 2400);
+    }, 1000);
   };
 
   return (
@@ -187,7 +286,7 @@ export default function BomScreen() {
         <header className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <button
-              onClick={() => setSelectedProject(null)}
+              onClick={() => clearProject()}
               className="mb-2 flex items-center gap-1 rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
             >
               <ArrowRight size={12} className="rotate-180" />
@@ -197,19 +296,25 @@ export default function BomScreen() {
               Project
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              {selectedProject}
+              {projectInfo.name}
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">
-              {items.length} components · {itemCount} units
+              {components.length} components · {itemCount} units
             </p>
           </div>
+          <button
+            onClick={() => setIsPdfOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+          >
+            <FileText size={18} />
+          </button>
         </header>
 
         {/* Compatibility alert */}
         <AnimatePresence>
           {!alertDismissed &&
-            (items.length > 0 &&
-            items.every((i) => i.stock === StockStatus.IN_STOCK) &&
+            (components.length > 0 &&
+            components.every((i) => i.stock === StockStatus.IN_STOCK) &&
             alerts.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
@@ -241,9 +346,9 @@ export default function BomScreen() {
                 ...compatibilityAlerts.filter(
                   (a) =>
                     !a.componentId ||
-                    items.some((item) => item.id === a.componentId),
+                    components.some((item) => item.id === a.componentId),
                 ),
-                ...items
+                ...components
                   .filter((i) => i.stock === StockStatus.OUT)
                   .map((i) => ({
                     id: `stock-${i.id}`,
@@ -299,7 +404,7 @@ export default function BomScreen() {
                     {a.componentId && (
                       <button
                         onClick={() => {
-                          const comp = items.find(
+                          const comp = components.find(
                             (i) => i.id === a.componentId,
                           );
                           if (comp) setSub(comp);
@@ -323,7 +428,7 @@ export default function BomScreen() {
 
         {/* Component feed */}
         <div className="flex flex-col gap-3">
-          {items.map((c) => (
+          {components.map((c) => (
             <ComponentCard key={c.id} c={c} onFindSubstitute={setSub} />
           ))}
         </div>
@@ -349,70 +454,128 @@ export default function BomScreen() {
             </div>
             {(() => {
               const hasIssues =
-                items.some((i) => i.stock === StockStatus.OUT) ||
+                components.some((i) => i.stock === StockStatus.OUT) ||
                 compatibilityAlerts.some(
                   (a) =>
                     !a.componentId ||
-                    items.some((item) => item.id === a.componentId),
+                    components.some((item) => item.id === a.componentId),
                 );
 
               return (
-                <motion.button
-                  whileTap={hasIssues ? {} : { scale: 0.97 }}
-                  onClick={handleCheckout}
-                  disabled={checkout !== "idle" || hasIssues}
-                  className={cn(
-                    "flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-primary-foreground",
-                    hasIssues
-                      ? "bg-muted text-muted-foreground cursor-not-allowed"
-                      : "glow-primary bg-primary",
-                  )}
-                >
-                  <AnimatePresence mode="wait">
-                    {checkout === "idle" && (
-                      <motion.span
-                        key="i"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center gap-2"
+                <div className="flex items-center gap-2">
+                  <AnimatePresence>
+                    {hasUnsavedChanges && !hasIssues && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8, width: 0 }}
+                        animate={{ opacity: 1, scale: 1, width: "auto" }}
+                        exit={{ opacity: 0, scale: 0.8, width: 0 }}
+                        onClick={revertChanges}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-muted-foreground ring-1 ring-white/10 transition-colors hover:bg-white/10 hover:text-foreground"
                       >
-                        {hasIssues ? "Fix issues to proceed" : "Push to cart"}
-                        {!hasIssues && <ArrowRight size={16} />}
-                      </motion.span>
-                    )}
-                    {checkout === "loading" && (
-                      <motion.span
-                        key="l"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Loader2 size={16} className="animate-spin" /> Pushing…
-                      </motion.span>
-                    )}
-                    {checkout === "done" && (
-                      <motion.span
-                        key="d"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Check size={16} /> Sent
-                      </motion.span>
+                        <X size={16} />
+                      </motion.button>
                     )}
                   </AnimatePresence>
-                </motion.button>
+                  <motion.button
+                    whileTap={hasIssues ? {} : { scale: 0.97 }}
+                    onClick={handleCheckout}
+                    disabled={checkout !== "idle" || hasIssues}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold text-primary-foreground",
+                      hasIssues
+                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                        : "glow-primary bg-primary",
+                    )}
+                  >
+                    <AnimatePresence mode="wait">
+                      {checkout === "idle" && (
+                        <motion.span
+                          key="i"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          {hasIssues ? "Fix issues to proceed" : "Push to cart"}
+                          {!hasIssues && <ArrowRight size={16} />}
+                        </motion.span>
+                      )}
+                      {checkout === "loading" && (
+                        <motion.span
+                          key="l"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Loader2 size={16} className="animate-spin" />{" "}
+                          Pushing…
+                        </motion.span>
+                      )}
+                      {checkout === "done" && (
+                        <motion.span
+                          key="d"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check size={16} /> Sent
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
               );
             })()}
           </motion.div>
         </div>
 
+        <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Specs Calculation Report</DialogTitle>
+            </DialogHeader>
+            <div className="flex h-96 items-center justify-center rounded-lg border border-dashed border-white/10 overflow-hidden">
+              {pdfUrl ? (
+                <iframe
+                  src={pdfUrl}
+                  className="h-full w-full"
+                  title="Specs Calculation Report"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No PDF generated
+                </p>
+              )}
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-4">
+              <span className="rounded-full border border-white/50 bg-white/8 px-2.5 py-0.5 text-xs font-medium text-white">
+                AI Generated
+              </span>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsPdfOpen(false)}>
+                  Close
+                </Button>
+                <a
+                  href={pdfUrl || "#"}
+                  download={`${projectInfo.name}_Report.pdf`}
+                  className={cn(
+                      "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2",
+                      !pdfUrl && "pointer-events-none opacity-50"
+                  )}
+                >
+                  <Download size={16} className="mr-2" />
+                  Download
+                </a>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <SubstituteSheet
           component={sub}
-          projectName={selectedProject}
+          projectName={projectInfo.name}
           onClose={() => setSub(null)}
         />
       </div>

@@ -1,5 +1,5 @@
 import { Type, Schema } from "@google/genai";
-import { ProjectTagEnum } from "../project/types";
+import { ProjectTagEnum } from "../apis/project/types";
 
 export const BomExtractionSchema: Schema = {
   type: Type.OBJECT,

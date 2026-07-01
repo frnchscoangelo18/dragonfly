@@ -15,15 +15,26 @@ import {
   X,
   Loader2,
   HelpCircle,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useBom } from "@/features/bom/store";
+import { useFlow } from "@/features/visual-flow/store";
 import Link from "next/link";
 import Image from "next/image";
 import { cn, formatRelativeTime } from "@/lib/utils";
-import { getAllProjects } from "@/lib/project/client";
+import { getAllProjects } from "@/lib/apis/project/client";
 import { ProjectCost } from "@/components/ProjectCost";
-import { ProjectModel } from "@/lib/project/types";
+import { ProjectModel } from "@/lib/apis/project/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useInspire } from "@/features/inspire/store";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -36,18 +47,34 @@ const categoryIcons: Record<string, typeof Bot> = {
 
 const suggestions = [
   "5V line-following robot with a higher voltage buzzer",
-  "ESP32 weather station, OLED + BME280",
+  // "ESP32 weather station, OLED + BME280",
   "Bluetooth audio amp, 2x3W class-D",
+  "LED + Resistor + 9V battery",
 ];
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    prompt,
+    setPrompt,
+    selectedFiles,
+    addFile,
+    removeFile: removeFileFromStore,
+    isLoading,
+    loadingText,
+    generate,
+  } = useInspire();
+
   const [showTip, setShowTip] = useState(false);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
+  const [previewImage, setPreviewImage] = useState<{
+    file: File;
+    preview: string;
+    index: number;
+  } | null>(null);
   const router = useRouter();
 
   const { loadDynamicProject } = useBom();
+  const { loadDynamicFlow } = useFlow();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -62,71 +89,32 @@ export default function Home() {
   }, []);
 
   const handleGenerate = async () => {
-    // ...
     if (prompt.trim() === "" && selectedFiles.length === 0) {
       setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
       return;
     }
 
-    setIsLoading(true);
     try {
-      const formData = new FormData();
-      if (prompt) formData.append("prompt", prompt);
-      if (selectedFiles.length > 0) {
-        formData.append("image", selectedFiles[0].file);
-      }
-
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("Failed to generate BOM from API");
-
-      const data = await res.json();
-
-      const projectName = prompt ? prompt : "Extracted Schematic";
-      loadDynamicProject(
-        projectName,
-        data.tag || "N/A",
-        data.items,
-        data.alerts,
-      );
-
-      router.push(
-        `/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`,
-      );
+      await generate(router, loadDynamicProject, loadDynamicFlow);
     } catch (e) {
       console.error(e);
-      setShowTip(true); // Fallback error handling
+      setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<
-    { file: File; preview: string }[]
-  >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File | null) => {
     if (!file) return;
-
-    // Create preview URL
-    const preview = URL.createObjectURL(file);
-    setSelectedFiles((prev) => [...prev, { file, preview }]);
+    addFile(file);
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles((prev) => {
-      const updated = [...prev];
-      URL.revokeObjectURL(updated[index].preview);
-      updated.splice(index, 1);
-      return updated;
-    });
+    removeFileFromStore(index);
+    setPreviewImage(null);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -209,7 +197,11 @@ export default function Home() {
           )}
         >
           {selectedFiles.map((item, index) => (
-            <div key={index} className="relative h-18 w-18 flex-shrink-0 mt-2">
+            <div
+              key={index}
+              className="relative h-18 w-18 flex-shrink-0 mt-2 cursor-pointer"
+              onClick={() => setPreviewImage({ ...item, index })}
+            >
               <Image
                 width={72}
                 height={72}
@@ -224,7 +216,7 @@ export default function Home() {
                 }}
                 className={cn(
                   "absolute -top-2 -right-2",
-                  "flex h-5 w-5 items-center justify-center",
+                  "flex p-1 items-center justify-center",
                   "rounded-full bg-red-500/60 text-white",
                   "border border-red-500 shadow-sm",
                   "hover:cursor-pointer",
@@ -236,6 +228,40 @@ export default function Home() {
           ))}
         </div>
       )}
+
+      {/* Image Preview Modal */}
+      <Dialog
+        open={!!previewImage}
+        onOpenChange={(open) => !open && setPreviewImage(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-normal text-muted-foreground">
+              {previewImage?.file.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center max-h-[60vh] overflow-y-auto">
+            {previewImage && (
+              <Image
+                width={400}
+                height={400}
+                src={previewImage.preview}
+                alt={previewImage.file.name}
+                className="rounded-lg object-contain"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={() => previewImage && removeFile(previewImage.index)}
+            >
+              <Trash2 size={16} className="mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Prompt */}
       <section className="flex flex-col gap-3">
@@ -275,15 +301,16 @@ export default function Home() {
         {isLoading ? (
           <>
             <Loader2 size={18} className="animate-spin" />
-            Generating...
+            {loadingText}
           </>
         ) : (
           <>
             <Sparkles size={18} />
-            Generate BOM
+            Generate Project
           </>
         )}
       </motion.button>
+
       {showTip && (
         <motion.p
           initial={{ opacity: 0, y: -5 }}
