@@ -186,10 +186,6 @@ export function InspireProvider({ children }: { children: ReactNode }) {
             pdf_url: pdfUrl,
           });
 
-          if (flowResult) {
-            loadDynamicFlow(flowResult);
-          }
-
           // 2. Save Inventory Items & Link to Project Components
           const componentIdMap: Record<string, string> = {};
           const projectComponents: ProjectComponentModel[] = [];
@@ -260,44 +256,66 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           );
 
           // 3. Save Visual Flow Nodes
+          const nodeDbIds: Record<string, string> = {};
+          const createdNodes: ProjectNodeModel[] = [];
           if (flowResult && flowResult.nodes) {
             await Promise.all(
               flowResult.nodes.map(async (node: any) => {
-                // The node.id in flowResult is the component name (per server instruction)
                 const compId = componentIdMap[node.id];
 
                 if (!compId) {
                   console.warn(
                     `Could not find ProjectComponent ID for node: ${node.id}`,
                   );
-                  return; // Skip nodes that don't have a corresponding component
+                  return;
                 }
 
-                return createProjectNode({
-                  id: `node-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                const nodeId = `node-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                nodeDbIds[node.id] = nodeId;
+                
+                const createdNode = await createProjectNode({
+                  id: nodeId,
                   projectId: project.id,
                   componentId: compId,
                   positionX: node.positionX,
                   positionY: node.positionY,
                 });
+                createdNodes.push(createdNode);
               }),
             );
           }
 
           // 4. Save Visual Flow Edges
+          const createdEdges: ProjectEdgeModel[] = [];
           if (flowResult && flowResult.edges) {
             await Promise.all(
-              flowResult.edges.map((edge: any) =>
-                createProjectEdge({
+              flowResult.edges.map(async (edge: any) => {
+                const sourceId = nodeDbIds[edge.sourceId];
+                const targetId = nodeDbIds[edge.targetId];
+
+                if (!sourceId || !targetId) {
+                  console.warn(
+                    `Could not find DB node IDs for edge: ${edge.sourceId} -> ${edge.targetId}`,
+                  );
+                  return;
+                }
+
+                const createdEdge = await createProjectEdge({
                   id: `edge-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                   projectId: project.id,
-                  sourceId: edge.sourceId,
-                  targetId: edge.targetId,
+                  sourceId: sourceId,
+                  targetId: targetId,
                   label: edge.label,
                   type: edge.type,
-                }),
-              ),
+                });
+                createdEdges.push(createdEdge);
+              }),
             );
+          }
+
+          // Synchronize store with real DB data to prevent disappearing nodes and dummy data
+          if (flowResult) {
+            loadDynamicFlow(flowResult, project, createdNodes, createdEdges, projectComponents);
           }
 
           // 5. Upload Specs PDF to Storage

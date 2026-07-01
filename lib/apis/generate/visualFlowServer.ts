@@ -34,11 +34,11 @@ export async function generateVisualFlowLogic(
       systemInstruction: `You are an expert System Architect and Electronics Engineer. Your task is to generate a visual dependency and signal flow mapping for an electronic circuit.
 
 CRITICAL INSTRUCTIONS:
-1. Map every component identified in the specs to a node.
-2. Establish edges representing power (VCC/GND), signal, logic, or I2C connections between components.
-3. For every edge, assign a type from the following set: 'power', 'signal', 'logic', 'i2c'.
-4. Use consistent naming for nodes that matches the components in the specs.
-5. Assign plausible but organized spatial coordinates (positionX, positionY) for the nodes to ensure a clean, non-overlapping layout.
+1. EXHAUSTIVE MAPPING: Every single component identified in the SPECS CONTEXT must have a corresponding node. Do not omit any component.
+2. FULL CONNECTIVITY: Establish edges representing power (VCC/GND), signal, logic, or I2C connections. Every node must be connected to the overall circuit flow via at least one edge to reflect the physical connectivity of the device.
+3. EDGE TYPES: For every edge, assign a type from the following set: 'power', 'signal', 'logic', 'i2c'.
+4. STRICT NAMING: The 'id' of each node MUST exactly match the component name as listed in the specs. This is critical for database synchronization.
+5. SPATIAL LAYOUT: Assign spatial coordinates (positionX, positionY) such that the diagram flows strictly from top to bottom: inputs and power sources should have smaller Y values (top), and outputs or actuators should have larger Y values (bottom). Ensure a clean, non-overlapping layout.
 
 Return JSON with the following structure:
 {

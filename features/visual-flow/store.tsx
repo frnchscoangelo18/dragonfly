@@ -23,6 +23,8 @@ interface FlowStore {
   setCurrentNodes: (nodes: ProjectNodeModel[]) => void;
   currentEdges: ProjectEdgeModel[];
   setCurrentEdges: (edges: ProjectEdgeModel[]) => void;
+  projectComponents: ProjectComponentModel[];
+  setProjectComponents: (components: ProjectComponentModel[]) => void;
   inventory: ItemModel[];
   setInventory: (inventory: ItemModel[]) => void;
   projects: ProjectModel[];
@@ -38,42 +40,65 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   );
   const [currentNodes, setCurrentNodes] = useState<ProjectNodeModel[]>([]);
   const [currentEdges, setCurrentEdges] = useState<ProjectEdgeModel[]>([]);
+  const [projectComponents, setProjectComponents] = useState<
+    ProjectComponentModel[]
+  >([]);
   const [inventory, setInventory] = useState<ItemModel[]>([]);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
 
-  const loadDynamicFlow = useCallback((flowData: any) => {
-    const project = {
-      id: `proj-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: flowData.name,
-      time: new Date().toISOString(),
-      tag: flowData.tag || "N/A",
-    };
+  const loadDynamicFlow = useCallback(
+    (
+      flowData: any,
+      overrideProject?: ProjectModel,
+      overrideNodes?: ProjectNodeModel[],
+      overrideEdges?: ProjectEdgeModel[],
+    ) => {
+      const project = overrideProject || {
+        id: `proj-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: flowData.name,
+        time: new Date().toISOString(),
+        tag: flowData.tag || "N/A",
+      };
 
-    setProjects((prev) => [...prev, project]);
-    setCurrentProject(project);
+      setProjects((prev) => {
+        if (prev.find((p) => p.id === project.id)) return prev;
+        return [...prev, project];
+      });
+      setCurrentProject(project);
 
-    setCurrentNodes(
-      flowData.nodes.map((n: any, i: number) => ({
-        id: `node-gen-${Date.now()}-${i}`,
-        projectId: project.id,
-        componentId: `comp-gen-${i}`,
-        positionX: n.positionX,
-        positionY: n.positionY,
-      })),
-    );
-    setCurrentEdges(
-      flowData.edges.map((e: any, i: number) => ({
-        id: `edge-gen-${Date.now()}-${i}`,
-        projectId: project.id,
-        sourceId: e.sourceId,
-        targetId: e.targetId,
-        label: e.label,
-        type: e.type,
-        sourceHandle: e.sourceHandle || "bottom",
-        targetHandle: e.targetHandle || "top",
-      })),
-    );
-  }, []);
+      if (overrideNodes) {
+        setCurrentNodes(overrideNodes);
+      } else {
+        setCurrentNodes(
+          flowData.nodes.map((n: any, i: number) => ({
+            id: `node-gen-${Date.now()}-${i}`,
+            projectId: project.id,
+            componentId: `comp-gen-${i}`,
+            positionX: n.positionX,
+            positionY: n.positionY,
+          })),
+        );
+      }
+
+      if (overrideEdges) {
+        setCurrentEdges(overrideEdges);
+      } else {
+        setCurrentEdges(
+          flowData.edges.map((e: any, i: number) => ({
+            id: `edge-gen-${Date.now()}-${i}`,
+            projectId: project.id,
+            sourceId: e.sourceId,
+            targetId: e.targetId,
+            label: e.label,
+            type: e.type,
+            sourceHandle: e.sourceHandle || "bottom",
+            targetHandle: e.targetHandle || "top",
+          })),
+        );
+      }
+    },
+    [],
+  );
 
   const value = useMemo<FlowStore>(
     () => ({
@@ -83,6 +108,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       setCurrentNodes,
       currentEdges,
       setCurrentEdges,
+      projectComponents,
+      setProjectComponents,
       inventory,
       setInventory,
       projects,
@@ -93,6 +120,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       currentProject,
       currentNodes,
       currentEdges,
+      projectComponents,
       inventory,
       projects,
       loadDynamicFlow,

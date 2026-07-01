@@ -38,6 +38,7 @@ import {
   updateProjectEdge,
   createProjectEdge,
   deleteProjectEdge,
+  getProjectComponents,
 } from "@/lib/apis/project/client";
 import { edgeColors } from "@/lib/apis/project/constants";
 import { getAllItems } from "@/lib/apis/inventory/client";
@@ -59,6 +60,8 @@ export default function FlowScreen() {
     setCurrentNodes,
     currentEdges,
     setCurrentEdges,
+    projectComponents,
+    setProjectComponents,
     inventory,
     setInventory,
     projects,
@@ -91,7 +94,7 @@ export default function FlowScreen() {
       .catch((err) => console.error("Failed to load initial data:", err));
   }, [setProjects, setInventory, setCurrentProject]); // Removed currentProject from deps to prevent reset loop
 
-  // Fetch nodes and edges whenever the active project changes
+  // Fetch nodes, edges and components whenever the active project changes
   useEffect(() => {
     if (!currentProject) return;
 
@@ -99,23 +102,34 @@ export default function FlowScreen() {
     Promise.all([
       getProjectNodes(currentProject.id),
       getProjectEdges(currentProject.id),
+      getProjectComponents(currentProject.id),
     ])
-      .then(([nodesData, edgesData]) => {
+      .then(([nodesData, edgesData, componentsData]) => {
         setCurrentNodes(nodesData);
         setCurrentEdges(edgesData);
+        setProjectComponents(componentsData);
       })
       .catch((err) => console.error("Failed to load project details:", err));
-  }, [currentProject, setCurrentNodes, setCurrentEdges]);
+  }, [currentProject, setCurrentNodes, setCurrentEdges, setProjectComponents]);
 
   // Map backend models to React Flow properties
   const { nodes: projectNodes, edges: projectEdges } = useMemo(() => {
     const nodes = currentNodes.map((node) => {
-      const comp = inventory.find((item) => item.id === node.componentId);
+      const projComp = projectComponents.find(
+        (pc) => pc.id === node.componentId,
+      );
+      const comp = projComp
+        ? inventory.find((item) => item.id === projComp.inventoryId)
+        : null;
+
       return {
         id: node.id,
-        label: comp?.name || "Unknown",
-        type: comp?.category.toLowerCase() || "logic",
-        specs: comp?.specs || "",
+        label: comp?.name || projComp?.name || "Unknown Component",
+        type:
+          comp?.category?.toLowerCase() ||
+          projComp?.category?.toLowerCase() ||
+          "logic",
+        specs: comp?.specs || projComp?.specs || "No specifications available",
         position: { x: node.positionX, y: node.positionY },
       };
     });
@@ -131,7 +145,7 @@ export default function FlowScreen() {
     }));
 
     return { nodes, edges };
-  }, [currentNodes, currentEdges, inventory]);
+  }, [currentNodes, currentEdges, inventory, projectComponents]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
