@@ -1,6 +1,6 @@
-import { generateVisualFlowLogic } from "@/lib/apis/generate/visualFlowServer";
+import { GeneratedFlow } from "@/lib/apis/generate/types";
 
-export async function generateVisualFlow(specsContext: string, prompt: string | null, image: File | null) {
+export async function generateVisualFlow(specsContext: string, prompt: string | null, image: File | null): Promise<GeneratedFlow> {
   const formData = new FormData();
   formData.append("specsContext", specsContext);
   if (prompt) formData.append("prompt", prompt);

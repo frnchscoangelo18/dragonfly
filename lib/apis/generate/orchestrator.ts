@@ -12,7 +12,8 @@ export interface PipelineResult {
 
 export async function runPipeline(
   prompt: string | null,
-  image: File | null
+  image: File | null,
+  generationTimestamp?: string,
 ): Promise<PipelineResult> {
   // 1. Specs
   const specs = await withRetry(async () => {
@@ -26,7 +27,7 @@ export async function runPipeline(
   // 2. BOM (using Specs as context)
   const specsContext = JSON.stringify(specs);
   const bom = await withRetry(async () => {
-    return (await generateBomLogic(specsContext, image)) as GeneratedBOM;
+    return (await generateBomLogic(specsContext, image, generationTimestamp)) as GeneratedBOM;
   });
   console.log("Pipeline Step 2 (BOM) Output:", bom);
 

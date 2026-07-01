@@ -1,3 +1,6 @@
+import { ItemDetails, StockStatus } from "@/lib/apis/inventory/types";
+import { BomAlert } from "@/features/bom/data";
+
 export interface GeneratedSpecs {
   specs: Array<{
     componentName: string;
@@ -8,21 +11,28 @@ export interface GeneratedSpecs {
   summary: string;
 }
 
-export interface GeneratedBOM {
-  items: Array<{
+export interface GeneratedBOMItem {
+  id: string;
+  name: string;
+  partNumber: string;
+  unitPrice: number;
+  stock: StockStatus;
+  stockCount: number;
+  category: string;
+  specs?: string;
+  pins: string[];
+  details?: ItemDetails;
+  storeOptions: Array<{
     id: string;
-    name: string;
-    partNumber: string;
-    unitPrice: number;
-    stock: "IN_STOCK" | "OUT";
-    storeOptions: Array<{
-      id: string;
-      price: number;
-      inStock: boolean;
-      isCheapest: boolean;
-    }>;
+    price: number;
+    inStock: boolean;
+    isCheapest: boolean;
   }>;
-  alerts: Array<{ id: string; message: string; severity: "info" | "warning" | "error" }>;
+}
+
+export interface GeneratedBOM {
+  items: GeneratedBOMItem[];
+  alerts: BomAlert[];
   tag: string;
 }
 

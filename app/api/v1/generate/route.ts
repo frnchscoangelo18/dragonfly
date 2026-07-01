@@ -6,6 +6,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const prompt = formData.get("prompt") as string | null;
     const image = formData.get("image") as File | null;
+    const generationTimestamp = formData.get("generationTimestamp") as string | null;
 
     if (!prompt && !image) {
       return NextResponse.json(
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await runPipeline(prompt, image);
+    const result = await runPipeline(prompt, image, generationTimestamp ?? undefined);
 
     return NextResponse.json(result);
   } catch (error) {

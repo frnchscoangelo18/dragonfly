@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { BomExtractionSchema } from "@/lib/schemas/bomSchema";
 import { resolveComponentPricing } from "@/lib/pricing";
-import { ItemModel, StockStatus } from "@/lib/apis/inventory/types";
+import { ItemModel, StockStatus, ItemCategory } from "@/lib/apis/inventory/types";
 import { type BomAlert } from "@/features/bom/data";
 import { ProjectTagEnum } from "@/lib/apis/project/types";
+import { GeneratedBOM, GeneratedBOMItem } from "./types";
 import { createItem } from "@/lib/apis/inventory/client";
 import { getNextApiKey } from "./keyCycler";
 
@@ -15,11 +16,24 @@ function slugify(text: string) {
     .replace(/\-\-+/g, '-');
 }
 
+function normalizeGenerationTimestamp(generationTimestamp?: string): string {
+  if (!generationTimestamp) {
+    return Date.now().toString();
+  }
+  const parsedTimestamp = Date.parse(generationTimestamp);
+  if (Number.isNaN(parsedTimestamp)) {
+    return Date.now().toString();
+  }
+  return parsedTimestamp.toString();
+}
+
 export async function generateBomLogic(
   prompt: string | null,
   image: File | null,
-) {
+  generationTimestamp?: string,
+): Promise<GeneratedBOM> {
   const ai = new GoogleGenAI({ apiKey: getNextApiKey() });
+  const generationSuffix = normalizeGenerationTimestamp(generationTimestamp);
   // 1. Prepare inputs for Gemini
   const contents = [];
   if (image) {
@@ -63,39 +77,64 @@ CRITICAL INSTRUCTIONS:
 
   // 3. Pricing Engine & Inventory Creation Logic
   const itemsWithPricing = await Promise.all(
-    extractedItems.map(async (item: ItemModel, index: number) => {
-      // Run real web search / scraping
-      const storeOptions = await resolveComponentPricing(
-        item.name,
-        item.partNumber,
-      );
+    extractedItems.map(async (item: ItemModel, index: number): Promise<GeneratedBOMItem> => {
+     // Run real web search / scraping
+     const storeOptions = await resolveComponentPricing(
+       item.name,
+       item.partNumber,
+     );
 
-      // Find the cheapest to set as default
-      const cheapestOption =
-        storeOptions.find((s) => s.isCheapest) || storeOptions[0];
+     // Find the cheapest to set as default
+     const cheapestOption =
+       storeOptions.find((s) => s.isCheapest) || storeOptions[0];
 
-      const itemData = {
-        ...item,
-        // Deterministic ID for consistency: component name slugified
-        id: `c-gen-${slugify(item.name)}`,
-        storeOptions,
-        // Hydrate the default frontend expectations based on cheapest option
-        unitPrice: cheapestOption ? cheapestOption.price : 0,
-        stock: cheapestOption?.inStock ? StockStatus.IN_STOCK : StockStatus.OUT,
+     // Add randomness to out-of-stock status
+     // 30% chance of being out of stock, 70% chance of being in stock
+     const randomOutOfStock = Math.random() < 0.3;
+      
+     // Determine stock status with randomness
+     const baseInStock = cheapestOption?.inStock ?? true;
+     const isInStock = randomOutOfStock ? false : baseInStock;
+      
+     // Vary stockCount for in-stock items (50-200) instead of always 100
+     const stockCount = isInStock 
+       ? Math.floor(Math.random() * 150) + 50  // Random between 50-200
+       : 0;
+       
+     const stock = isInStock ? StockStatus.IN_STOCK : StockStatus.OUT;
+     const generatedItemId = `c-gen-${slugify(item.name)}-${generationSuffix}-${index}`;
+
+     // Simulate inventory creation
+     try {
+       await createItem({
+         id: generatedItemId,
+         name: item.name,
+         partNumber: item.partNumber,
+         specs: item.specs,
+         unitPrice: cheapestOption ? cheapestOption.price : 0,
+         stock,
+         stockCount,
+         category: item.category,
+         pins: item.pins || [],
+         details: item.details,
+       });
+     } catch (err) {
+       console.warn(`Could not sync item to inventory: ${item.name}`, err);
+     }
+
+     return {
+       id: generatedItemId,
+       name: item.name,
+       partNumber: item.partNumber,
+       specs: item.specs,
+       unitPrice: cheapestOption ? cheapestOption.price : 0,
+       stock,
+       stockCount,
+       category: item.category,
+       pins: item.pins || [],
+       details: item.details,
+       storeOptions,
       };
-
-      // Simulate inventory creation
-      try {
-        await createItem({
-            ...itemData,
-            stockCount: cheapestOption?.inStock ? 100 : 0,
-            pins: [],
-        });
-      } catch (err) {
-        console.warn(`Could not sync item to inventory: ${item.name}`, err);
-      }
-
-      return itemData;
     }),
   );
 

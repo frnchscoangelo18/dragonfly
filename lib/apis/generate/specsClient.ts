@@ -1,4 +1,6 @@
-export async function generateSpecs(prompt: string | null, image: File | null) {
+import { GeneratedSpecs } from "@/lib/apis/generate/types";
+
+export async function generateSpecs(prompt: string | null, image: File | null): Promise<GeneratedSpecs> {
   const formData = new FormData();
   if (prompt) formData.append("prompt", prompt);
   if (image) formData.append("image", image);

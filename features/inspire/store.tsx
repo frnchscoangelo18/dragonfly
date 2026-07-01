@@ -21,6 +21,10 @@ import {
 } from "@/lib/apis/project/client";
 import { createItem } from "@/lib/apis/inventory/client";
 import { uploadToStorage } from "@/lib/apis/storage/client";
+import { GeneratedBOMItem, GeneratedSpecs, GeneratedFlow } from "@/lib/apis/generate/types";
+import { ProjectComponentModel, ProjectTagEnum } from "@/lib/apis/project/types";
+import { ItemCategory } from "@/lib/apis/inventory/types";
+import { BomAlert } from "@/features/bom/data";
 
 interface SelectedFile {
   file: File;
@@ -80,7 +84,18 @@ export function InspireProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const generate = useCallback(
-    async (router: any, loadDynamicProject: any, loadDynamicFlow: any) => {
+    async (
+      router: any,
+      loadDynamicProject: (
+        projectName: string,
+        tag: ProjectTagEnum | string,
+        newComponents: ProjectComponentModel[],
+        newAlerts?: BomAlert[],
+        newSpecs?: GeneratedSpecs,
+        newPdfReport?: Blob | null,
+      ) => void,
+      loadDynamicFlow: (flowData: GeneratedFlow) => void,
+    ) => {
       if (prompt.trim() === "" && selectedFiles.length === 0) {
         throw new Error("Prompt and files are empty");
       }
@@ -95,6 +110,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
 
         // 1. Specs
         setLoadingTextState("Calculating specs...");
+        const generationTimestamp = new Date().toISOString();
         const specsData = await withRetry(async () => {
           return await generateSpecs(sanitizedPrompt, imageFile);
         });
@@ -104,7 +120,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
         // 2. BOM
         setLoadingTextState("Generating BOM...");
         const bomResult = await withRetry(async () => {
-          return await generateBOM(specsContext, imageFile);
+          return await generateBOM(specsContext, imageFile, generationTimestamp);
         });
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -131,13 +147,24 @@ export function InspireProvider({ children }: { children: ReactNode }) {
 
         // --- SYNC TO DB START ---
         try {
+          // Convert tag from string to ProjectTagEnum
+          const tagMap: Record<string, ProjectTagEnum> = {
+            Robotics: ProjectTagEnum.ROBOTICS,
+            IoT: ProjectTagEnum.IOT,
+            Power: ProjectTagEnum.POWER,
+            Networking: ProjectTagEnum.NETWORKING,
+            Mechatronics: ProjectTagEnum.MECHATRONICS,
+            "N/A": ProjectTagEnum.NA,
+          };
+          const projectTag = tagMap[bomResult.tag] || ProjectTagEnum.NA;
+
           // 1. Create the Project
           const projectId = `proj-gen-${Date.now()}`;
           const project = await createProject({
             id: projectId,
             name: projectName,
             time: new Date().toISOString(),
-            tag: bomResult.tag || "N/A",
+            tag: projectTag,
           });
 
           // Upload PDF and Create Report
@@ -163,68 +190,73 @@ export function InspireProvider({ children }: { children: ReactNode }) {
             loadDynamicFlow(flowResult);
           }
 
-          loadDynamicProject(
-            projectName,
-            bomResult.tag || "N/A",
-            bomResult.items,
-            bomResult.alerts,
-            specsData,
-            new Blob([pdfBytes], { type: "application/pdf" }),
-          );
-
           // 2. Save Inventory Items & Link to Project Components
           const componentIdMap: Record<string, string> = {};
+          const projectComponents: ProjectComponentModel[] = [];
+          
           await Promise.all(
-            bomResult.items.map(async (item: any, idx: number) => {
+            bomResult.items.map(async (item: GeneratedBOMItem, idx: number) => {
               // Map AI category to valid ItemCategory enum
-              const categoryMap: Record<string, any> = {
-                MCU: "MCU",
-                Sensor: "Sensor",
-                Actuator: "Actuator",
-                Logic: "Logic",
-                Power: "Power",
-                Passive: "Passive",
-                IoT: "MCU",
-                Robotics: "Actuator",
-                Networking: "Logic",
-                Mechatronics: "Actuator",
+              const categoryMap: Record<string, ItemCategory> = {
+                MCU: ItemCategory.MCU,
+                Sensor: ItemCategory.Sensor,
+                Actuator: ItemCategory.Actuator,
+                Logic: ItemCategory.Logic,
+                Power: ItemCategory.Power,
+                Passive: ItemCategory.Passive,
+                IoT: ItemCategory.MCU,
+                Robotics: ItemCategory.Actuator,
+                Networking: ItemCategory.Logic,
+                Mechatronics: ItemCategory.Actuator,
               };
-              const validCategory = categoryMap[item.category] || "Logic";
+              const validCategory = categoryMap[item.category] || ItemCategory.Logic;
 
-              // Ensure item is in the global inventory
+              // Item already created in generateBomLogic, but ensure it's consistent
               const newItem = await createItem({
-                id: `item-gen-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
+                id: item.id,
                 name: item.name,
                 partNumber: item.partNumber,
                 category: validCategory,
-                specs: item.specs,
+                specs: item.specs || "",
                 details: item.details,
                 unitPrice: item.unitPrice,
                 stock: item.stock,
-                stockCount: 0,
-                pins: [],
+                stockCount: item.stockCount,
+                pins: item.pins || [],
               });
 
               // Link this item to the project
               const projectComp = await createProjectComponent(project.id, {
                 id: `comp-proj-gen-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`,
                 inventoryId: newItem.id,
-                qty: item.qty || 1,
+                qty: 1,
                 name: item.name,
                 partNumber: item.partNumber,
                 category: validCategory,
-                specs: item.specs,
+                specs: item.specs || "",
                 unitPrice: item.unitPrice,
                 stock: item.stock,
-                stockCount: 0,
-                pins: [],
+                stockCount: item.stockCount,
+                pins: item.pins || [],
               });
+
+              projectComponents.push(projectComp);
 
               // Map the AI component name to the database ProjectComponent ID
               if (item.name) {
                 componentIdMap[item.name] = projectComp.id;
               }
             }),
+          );
+
+          // Load the dynamic project with the created components
+          loadDynamicProject(
+            projectName,
+            projectTag,
+            projectComponents,
+            bomResult.alerts,
+            specsData,
+            new Blob([pdfBytes], { type: "application/pdf" }),
           );
 
           // 3. Save Visual Flow Nodes
