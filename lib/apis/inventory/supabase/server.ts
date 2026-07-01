@@ -13,7 +13,6 @@ export async function getAllItems(): Promise<ItemModel[]> {
     partNumber: item.part_number,
     specs: item.specs,
     unitPrice: item.unit_price,
-    qty: item.qty,
     stock: item.stock,
     stockCount: item.stock_count,
     category: item.category,
@@ -40,7 +39,6 @@ export async function getItemById(id: string): Promise<ItemModel | undefined> {
     partNumber: data.part_number,
     specs: data.specs,
     unitPrice: data.unit_price,
-    qty: data.qty,
     stock: data.stock,
     stockCount: data.stock_count,
     category: data.category,
@@ -59,7 +57,6 @@ export async function createItem(component: ItemModel): Promise<ItemModel> {
         part_number: component.partNumber,
         specs: component.specs,
         unit_price: component.unitPrice,
-        qty: component.qty,
         stock: component.stock,
         stock_count: component.stockCount,
         category: component.category,
@@ -78,7 +75,6 @@ export async function createItem(component: ItemModel): Promise<ItemModel> {
     partNumber: data.part_number,
     specs: data.specs,
     unitPrice: data.unit_price,
-    qty: data.qty,
     stock: data.stock,
     stockCount: data.stock_count,
     category: data.category,
@@ -99,7 +95,6 @@ export async function updateItem(
   if ("specs" in updatedItem) updatePayload.specs = updatedItem.specs;
   if ("unitPrice" in updatedItem)
     updatePayload.unit_price = updatedItem.unitPrice;
-  if ("qty" in updatedItem) updatePayload.qty = updatedItem.qty;
   if ("stock" in updatedItem) updatePayload.stock = updatedItem.stock;
   if ("stockCount" in updatedItem)
     updatePayload.stock_count = updatedItem.stockCount;
@@ -123,7 +118,6 @@ export async function updateItem(
     partNumber: data.part_number,
     specs: data.specs,
     unitPrice: data.unit_price,
-    qty: data.qty,
     stock: data.stock,
     stockCount: data.stock_count,
     category: data.category,

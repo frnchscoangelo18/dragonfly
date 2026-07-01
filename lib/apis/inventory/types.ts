@@ -49,7 +49,6 @@ export interface ItemModel {
   partNumber: string;
   specs: string;
   unitPrice: number;
-  qty: number;
   stock: StockStatus;
   stockCount: number;
   category: ItemCategory;

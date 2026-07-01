@@ -88,7 +88,6 @@ CRITICAL INSTRUCTIONS:
       try {
         await createItem({
             ...itemData,
-            qty: 0,
             stockCount: cheapestOption?.inStock ? 100 : 0,
             pins: [],
         });

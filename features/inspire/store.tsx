@@ -201,7 +201,6 @@ export function InspireProvider({ children }: { children: ReactNode }) {
                 details: item.details,
                 unitPrice: item.unitPrice,
                 stock: item.stock,
-                qty: 0,
                 stockCount: 0,
                 pins: [],
               });

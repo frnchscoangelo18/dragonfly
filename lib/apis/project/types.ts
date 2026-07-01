@@ -58,7 +58,7 @@ export interface ProjectCartSummary {
   tag: ProjectTagEnum;
   timestamp: string;
   totalPrice: number;
-  items: (ItemModel & { qtyPrice: number })[];
+  items: (ProjectComponentModel & { qtyPrice: number })[];
 }
 
 export interface ProjectModel {
@@ -93,6 +93,7 @@ export interface ProjectComponentModel extends Omit<ItemModel, "id"> {
   id: string;
   projectId: string;
   inventoryId: string;
+  qty: number;
   createdAt?: string;
   updatedAt?: string;
 }
