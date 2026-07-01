@@ -1,9 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { SpecsExtractionSchema } from "./specsSchema";
+import { getNextApiKey } from "./keyCycler";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-export async function generateSpecsLogic(prompt: string | null, image: File | null) {
+export async function generateSpecsLogic(
+  prompt: string | null,
+  image: File | null,
+) {
+  const ai = new GoogleGenAI({ apiKey: getNextApiKey() });
   const contents = [];
   if (image) {
     const buffer = Buffer.from(await image.arrayBuffer());
@@ -17,7 +20,8 @@ export async function generateSpecsLogic(prompt: string | null, image: File | nu
   if (prompt) contents.push({ text: prompt });
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
+    // model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     contents: contents,
     config: {
       systemInstruction: `You are an expert Electronics Engineer. Analyze the schematic/description. 

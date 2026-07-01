@@ -110,8 +110,9 @@ export default function BomScreen() {
     itemCount,
     loadProject,
     pushToCart,
+    projectInfo,
+    clearProject,
   } = useBom();
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
   const [sub, setSub] = useState<ProjectComponentModel | null>(null); // Note: updated to use ProjectComponentModel
   const [alertDismissed, setAlertDismissed] = useState(false);
@@ -126,6 +127,8 @@ export default function BomScreen() {
       const url = URL.createObjectURL(pdfReport);
       setPdfUrl(url);
       return () => URL.revokeObjectURL(url);
+    } else {
+      setPdfUrl("/reports/document.pdf");
     }
   }, [pdfReport]);
 
@@ -136,25 +139,30 @@ export default function BomScreen() {
     async function init() {
       try {
         const data = await getAllProjects();
-        setProjects(data);
+        setProjects((prev) => {
+          // Merge backend projects with any dynamic projects already in state
+          const combined = [...data, ...prev.filter(p => !data.find(bp => bp.id === p.id))];
+          return combined;
+        });
 
         if ((generate === "true" || generate === "dynamic") && prompt) {
           const decodedPrompt = decodeURIComponent(prompt);
-          setSelectedProject(decodedPrompt);
+          if (!projectInfo || projectInfo.name !== decodedPrompt) {
+            loadProject(decodedPrompt);
+          }
         }
       } catch (e) {
         console.error("Failed to initialize BOM screen", e);
       }
     }
     init();
-  }, [generate, prompt]);
+  }, [generate, prompt, projectInfo, loadProject]);
 
   const handleSelectProject = (projectName: string) => {
-    setSelectedProject(projectName);
     loadProject(projectName);
   };
 
-  if (!selectedProject) {
+  if (!projectInfo) {
     return (
       <div className="flex flex-col gap-6 px-5 pt-14 pb-48">
         <header>
@@ -181,8 +189,8 @@ export default function BomScreen() {
   const handleCheckout = async () => {
     setCheckout("loading");
 
-    if (selectedProject) {
-      const project = projects.find((p) => p.name === selectedProject);
+    if (projectInfo) {
+      const project = projects.find((p) => p.name === projectInfo.name);
       if (project) {
         try {
           const deletes = originalComponents.filter(
@@ -253,7 +261,7 @@ export default function BomScreen() {
         // Dynamic AI Project
         const summary: Omit<ProjectCartSummary, "totalPrice"> = {
           id: `dynamic-${Date.now()}`,
-          name: selectedProject,
+          name: projectInfo.name,
           tag: ProjectTagEnum.NA,
           timestamp: new Date().toLocaleString(),
           items: components.map((item) => ({
@@ -278,7 +286,7 @@ export default function BomScreen() {
         <header className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <button
-              onClick={() => setSelectedProject(null)}
+              onClick={() => clearProject()}
               className="mb-2 flex items-center gap-1 rounded-full border border-white/10 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
             >
               <ArrowRight size={12} className="rotate-180" />
@@ -288,7 +296,7 @@ export default function BomScreen() {
               Project
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              {selectedProject}
+              {projectInfo.name}
             </h1>
             <p className="mt-1 text-xs text-muted-foreground">
               {components.length} components · {itemCount} units
@@ -549,21 +557,17 @@ export default function BomScreen() {
                 <Button variant="outline" onClick={() => setIsPdfOpen(false)}>
                   Close
                 </Button>
-                <Button
-                  onClick={() => {
-                    if (pdfReport) {
-                      const url = URL.createObjectURL(pdfReport);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = "specs-report.pdf";
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }
-                  }}
+                <a
+                  href={pdfUrl || "#"}
+                  download={`${projectInfo.name}_Report.pdf`}
+                  className={cn(
+                      "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2",
+                      !pdfUrl && "pointer-events-none opacity-50"
+                  )}
                 >
                   <Download size={16} className="mr-2" />
                   Download
-                </Button>
+                </a>
               </div>
             </div>
           </DialogContent>
@@ -571,7 +575,7 @@ export default function BomScreen() {
 
         <SubstituteSheet
           component={sub}
-          projectName={selectedProject}
+          projectName={projectInfo.name}
           onClose={() => setSub(null)}
         />
       </div>

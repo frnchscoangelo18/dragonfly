@@ -19,9 +19,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useBom } from "@/features/bom/store";
-import { generateBOM } from "@/lib/apis/generate/client";
-import { generateSpecs } from "@/lib/apis/generate/specsClient";
-import { downloadReport } from "@/lib/apis/pdf/client";
+import { useFlow } from "@/features/visual-flow/store";
 import Link from "next/link";
 import Image from "next/image";
 import { cn, formatRelativeTime } from "@/lib/utils";
@@ -36,6 +34,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useInspire } from "@/features/inspire/store";
 
 const categoryIcons: Record<string, typeof Bot> = {
   Robotics: Bot,
@@ -48,14 +47,23 @@ const categoryIcons: Record<string, typeof Bot> = {
 
 const suggestions = [
   "5V line-following robot with a higher voltage buzzer",
-  "ESP32 weather station, OLED + BME280",
+  // "ESP32 weather station, OLED + BME280",
   "Bluetooth audio amp, 2x3W class-D",
+  "LED + Resistor + 9V battery",
 ];
 
 export default function Home() {
-  const [prompt, setPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("Generating...");
+  const {
+    prompt,
+    setPrompt,
+    selectedFiles,
+    addFile,
+    removeFile: removeFileFromStore,
+    isLoading,
+    loadingText,
+    generate,
+  } = useInspire();
+
   const [showTip, setShowTip] = useState(false);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
   const [previewImage, setPreviewImage] = useState<{
@@ -66,6 +74,7 @@ export default function Home() {
   const router = useRouter();
 
   const { loadDynamicProject } = useBom();
+  const { loadDynamicFlow } = useFlow();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -86,77 +95,25 @@ export default function Home() {
       return;
     }
 
-    setIsLoading(true);
     try {
-      const imageFile = selectedFiles.length > 0 ? selectedFiles[0].file : null;
-      
-      // Sanitize the prompt
-      const sanitizedPrompt = prompt ? prompt.replace(/[^\x00-\x7F]/g, "") : null;
-
-      // Stage 1: Calculate Specs
-      setLoadingText("Calculating specs...");
-      const specsData = await generateSpecs(sanitizedPrompt, imageFile);
-      const specsContext = JSON.stringify(specsData);
-
-      // Generate PDF
-      const pdfBytes = await downloadReport({ 
-        projectName: sanitizedPrompt || "Extracted Schematic", 
-        items: specsData.specs 
-      }, true) as ArrayBuffer;
-      
-      // Stage 2: Generate BOM
-      setLoadingText("Generating BOM...");
-      // Combine sanitized prompt with specs context
-      const combinedPrompt = sanitizedPrompt 
-        ? `${sanitizedPrompt}\n\nRELEVANT SPECS ANALYSIS:\n${specsContext}` 
-        : `Generate a BOM based on the following specs analysis:\n${specsContext}`;
-
-      const data = await generateBOM(combinedPrompt, imageFile);
-
-      const projectName = sanitizedPrompt ? sanitizedPrompt : "Extracted Schematic";
-      loadDynamicProject(
-        projectName,
-        data.tag || "N/A",
-        data.items,
-        data.alerts,
-        specsData,
-        new Blob([pdfBytes], { type: "application/pdf" }), // Store as Blob
-      );
-
-      router.push(
-        `/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`,
-      );
+      await generate(router, loadDynamicProject, loadDynamicFlow);
     } catch (e) {
       console.error(e);
-      setShowTip(true); // Fallback error handling
+      setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
-    } finally {
-      setIsLoading(false);
-      setLoadingText("Generating...");
     }
   };
 
   const [isDragging, setIsDragging] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<
-    { file: File; preview: string }[]
-  >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File | null) => {
     if (!file) return;
-
-    // Create preview URL
-    const preview = URL.createObjectURL(file);
-    setSelectedFiles((prev) => [...prev, { file, preview }]);
+    addFile(file);
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles((prev) => {
-      const updated = [...prev];
-      URL.revokeObjectURL(updated[index].preview);
-      updated.splice(index, 1);
-      return updated;
-    });
+    removeFileFromStore(index);
     setPreviewImage(null);
   };
 
@@ -349,7 +306,7 @@ export default function Home() {
         ) : (
           <>
             <Sparkles size={18} />
-            Generate BOM
+            Generate Project
           </>
         )}
       </motion.button>

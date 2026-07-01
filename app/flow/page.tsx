@@ -41,30 +41,31 @@ import {
 } from "@/lib/apis/project/client";
 import { edgeColors } from "@/lib/apis/project/constants";
 import { getAllItems } from "@/lib/apis/inventory/client";
-import { ItemModel } from "@/lib/apis/inventory/types";
 import {
   CustomNode,
   type ComponentNode,
 } from "@/features/visual-flow/CustomNode";
-import {
-  ProjectEdgeModel,
-  ProjectModel,
-  ProjectNodeModel,
-} from "@/lib/apis/project/types";
 import { toast } from "sonner";
+import { useFlow } from "@/features/visual-flow/store";
+import { ProjectModel } from "@/lib/apis/project/types";
 
 const nodeTypes = { custom: CustomNode };
 
 export default function FlowScreen() {
-  const [selected, setSelected] = useState<ComponentNode | null>(null);
-  const [projects, setProjects] = useState<ProjectModel[]>([]);
-  const [currentProject, setCurrentProject] = useState<ProjectModel | null>(
-    null,
-  );
-  const [currentNodes, setCurrentNodes] = useState<ProjectNodeModel[]>([]);
-  const [currentEdges, setCurrentEdges] = useState<ProjectEdgeModel[]>([]);
-  const [inventory, setInventory] = useState<ItemModel[]>([]);
+  const {
+    currentProject,
+    setCurrentProject,
+    currentNodes,
+    setCurrentNodes,
+    currentEdges,
+    setCurrentEdges,
+    inventory,
+    setInventory,
+    projects,
+    setProjects,
+  } = useFlow();
 
+  const [selected, setSelected] = useState<ComponentNode | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -72,14 +73,23 @@ export default function FlowScreen() {
   useEffect(() => {
     Promise.all([getAllProjects(), getAllItems()])
       .then(([projs, inv]) => {
-        setProjects(projs);
+        setProjects((prev: ProjectModel[]) => {
+          const newProjects: ProjectModel[] = [
+            ...projs,
+            ...prev.filter(
+              (p: ProjectModel) =>
+                !projs.find((bp: ProjectModel) => bp.id === p.id),
+            ),
+          ];
+          return newProjects;
+        });
         setInventory(inv);
-        if (projs.length > 0) {
+        if (projs.length > 0 && !currentProject) {
           setCurrentProject(projs[0]);
         }
       })
       .catch((err) => console.error("Failed to load initial data:", err));
-  }, []);
+  }, [setProjects, setInventory, setCurrentProject]); // Removed currentProject from deps to prevent reset loop
 
   // Fetch nodes and edges whenever the active project changes
   useEffect(() => {
@@ -95,7 +105,7 @@ export default function FlowScreen() {
         setCurrentEdges(edgesData);
       })
       .catch((err) => console.error("Failed to load project details:", err));
-  }, [currentProject]);
+  }, [currentProject, setCurrentNodes, setCurrentEdges]);
 
   // Map backend models to React Flow properties
   const { nodes: projectNodes, edges: projectEdges } = useMemo(() => {
@@ -376,17 +386,18 @@ export default function FlowScreen() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-2 rounded-full"
+                className="flex items-center gap-2 rounded-full max-w-[200px]"
               >
-                {currentProject.name} <ChevronDown size={16} />
+                <span className="truncate">{currentProject.name}</span>{" "}
+                <ChevronDown size={16} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="max-w-[250px]">
               {projects.map((project) => (
                 <DropdownMenuItem
                   key={project.id}
                   onClick={() => setCurrentProject(project)}
-                  className="focus:bg-primary/20 focus:text-primary transition-colors"
+                  className="focus:bg-primary/20 focus:text-primary transition-colors truncate"
                 >
                   {project.name}
                 </DropdownMenuItem>
