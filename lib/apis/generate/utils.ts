@@ -1,6 +1,10 @@
-import { GoogleGenAI, GenerateContentConfig, GenerateContentResponse } from "@google/genai";
+import {
+  GoogleGenAI,
+  GenerateContentConfig,
+  GenerateContentResponse,
+} from "@google/genai";
 
-export const DEFAULT_MAX_RETRIES = 5;
+export const DEFAULT_MAX_RETRIES = 10;
 export const DEFAULT_BASE_DELAY_MS = 2000;
 
 function isRetriable(error: any): boolean {
@@ -28,7 +32,10 @@ export async function withRetry<T>(
       // Jitter: add random value up to baseDelay
       const delay = Math.pow(2, i) * baseDelayMs + Math.random() * baseDelayMs;
 
-      console.warn(`Attempt ${i + 1} failed (retriable), retrying in ${delay.toFixed(0)}ms...`, error);
+      console.warn(
+        `Attempt ${i + 1} failed (retriable), retrying in ${delay.toFixed(0)}ms...`,
+        error,
+      );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
