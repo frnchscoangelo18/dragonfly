@@ -1,8 +1,8 @@
 import { generateSpecsLogic } from "./specsServer";
-import { generateBomLogic } from "./server";
 import { generateVisualFlowLogic } from "./visualFlowServer";
 import { withRetry } from "./utils";
 import { GeneratedSpecs, GeneratedBOM, GeneratedFlow } from "./types";
+import { generateBomLogic } from "./bomServer";
 
 export interface PipelineResult {
   specs: GeneratedSpecs;
@@ -27,7 +27,11 @@ export async function runPipeline(
   // 2. BOM (using Specs as context)
   const specsContext = JSON.stringify(specs);
   const bom = await withRetry(async () => {
-    return (await generateBomLogic(specsContext, image, generationTimestamp)) as GeneratedBOM;
+    return (await generateBomLogic(
+      specsContext,
+      image,
+      generationTimestamp,
+    )) as GeneratedBOM;
   });
   console.log("Pipeline Step 2 (BOM) Output:", bom);
 
@@ -36,7 +40,11 @@ export async function runPipeline(
 
   // 3. Flow (using Specs as context)
   const flow = await withRetry(async () => {
-    return (await generateVisualFlowLogic(specsContext, prompt, image)) as GeneratedFlow;
+    return (await generateVisualFlowLogic(
+      specsContext,
+      prompt,
+      image,
+    )) as GeneratedFlow;
   });
   console.log("Pipeline Step 3 (Flow) Output:", flow);
 

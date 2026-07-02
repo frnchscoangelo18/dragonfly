@@ -1,7 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
-import { BomExtractionSchema } from "@/lib/schemas/bomSchema";
+import { BomExtractionSchema } from "@/lib/apis/generate/bomSchema";
 import { resolveComponentPricing } from "@/lib/pricing";
-import { ItemModel, StockStatus, ItemCategory } from "@/lib/apis/inventory/types";
+import {
+  ItemModel,
+  StockStatus,
+  ItemCategory,
+} from "@/lib/apis/inventory/types";
 import { type BomAlert } from "@/features/bom/data";
 import { ProjectTagEnum } from "@/lib/apis/project/types";
 import { GeneratedBOM, GeneratedBOMItem } from "./types";
@@ -10,10 +14,13 @@ import { getNextApiKey } from "./keyCycler";
 
 // Helper for deterministic IDs
 function slugify(text: string) {
-  return text.toString().toLowerCase().trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-');
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w\-]+/g, "")
+    .replace(/\-\-+/g, "-");
 }
 
 function normalizeGenerationTimestamp(generationTimestamp?: string): string {
@@ -77,65 +84,67 @@ CRITICAL INSTRUCTIONS:
 
   // 3. Pricing Engine & Inventory Creation Logic
   const itemsWithPricing = await Promise.all(
-    extractedItems.map(async (item: ItemModel, index: number): Promise<GeneratedBOMItem> => {
-     // Run real web search / scraping
-     const storeOptions = await resolveComponentPricing(
-       item.name,
-       item.partNumber,
-     );
+    extractedItems.map(
+      async (item: ItemModel, index: number): Promise<GeneratedBOMItem> => {
+        // Run real web search / scraping
+        const storeOptions = await resolveComponentPricing(
+          item.name,
+          item.partNumber,
+        );
 
-     // Find the cheapest to set as default
-     const cheapestOption =
-       storeOptions.find((s) => s.isCheapest) || storeOptions[0];
+        // Find the cheapest to set as default
+        const cheapestOption =
+          storeOptions.find((s) => s.isCheapest) || storeOptions[0];
 
-     // Add randomness to out-of-stock status
-     // 30% chance of being out of stock, 70% chance of being in stock
-     const randomOutOfStock = Math.random() < 0.3;
-      
-     // Determine stock status with randomness
-     const baseInStock = cheapestOption?.inStock ?? true;
-     const isInStock = randomOutOfStock ? false : baseInStock;
-      
-     // Vary stockCount for in-stock items (50-200) instead of always 100
-     const stockCount = isInStock 
-       ? Math.floor(Math.random() * 150) + 50  // Random between 50-200
-       : 0;
-       
-     const stock = isInStock ? StockStatus.IN_STOCK : StockStatus.OUT;
-     const generatedItemId = `c-gen-${slugify(item.name)}-${generationSuffix}-${index}`;
+        // Add randomness to out-of-stock status
+        // 30% chance of being out of stock, 70% chance of being in stock
+        const randomOutOfStock = Math.random() < 0.3;
 
-     // Simulate inventory creation
-     try {
-       await createItem({
-         id: generatedItemId,
-         name: item.name,
-         partNumber: item.partNumber,
-         specs: item.specs,
-         unitPrice: cheapestOption ? cheapestOption.price : 0,
-         stock,
-         stockCount,
-         category: item.category,
-         pins: item.pins || [],
-         details: item.details,
-       });
-     } catch (err) {
-       console.warn(`Could not sync item to inventory: ${item.name}`, err);
-     }
+        // Determine stock status with randomness
+        const baseInStock = cheapestOption?.inStock ?? true;
+        const isInStock = randomOutOfStock ? false : baseInStock;
 
-     return {
-       id: generatedItemId,
-       name: item.name,
-       partNumber: item.partNumber,
-       specs: item.specs,
-       unitPrice: cheapestOption ? cheapestOption.price : 0,
-       stock,
-       stockCount,
-       category: item.category,
-       pins: item.pins || [],
-       details: item.details,
-       storeOptions,
-      };
-    }),
+        // Vary stockCount for in-stock items (50-200) instead of always 100
+        const stockCount = isInStock
+          ? Math.floor(Math.random() * 150) + 50 // Random between 50-200
+          : 0;
+
+        const stock = isInStock ? StockStatus.IN_STOCK : StockStatus.OUT;
+        const generatedItemId = `c-gen-${slugify(item.name)}-${generationSuffix}-${index}`;
+
+        // Simulate inventory creation
+        try {
+          await createItem({
+            id: generatedItemId,
+            name: item.name,
+            partNumber: item.partNumber,
+            specs: item.specs,
+            unitPrice: cheapestOption ? cheapestOption.price : 0,
+            stock,
+            stockCount,
+            category: item.category,
+            pins: item.pins || [],
+            details: item.details,
+          });
+        } catch (err) {
+          console.warn(`Could not sync item to inventory: ${item.name}`, err);
+        }
+
+        return {
+          id: generatedItemId,
+          name: item.name,
+          partNumber: item.partNumber,
+          specs: item.specs,
+          unitPrice: cheapestOption ? cheapestOption.price : 0,
+          stock,
+          stockCount,
+          category: item.category,
+          pins: item.pins || [],
+          details: item.details,
+          storeOptions,
+        };
+      },
+    ),
   );
 
   return {
