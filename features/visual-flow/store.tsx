@@ -33,7 +33,12 @@ interface FlowStore {
   setInventory: Dispatch<SetStateAction<ItemModel[]>>;
   projects: ProjectModel[];
   setProjects: Dispatch<SetStateAction<ProjectModel[]>>;
-  loadDynamicFlow: (flowData: GeneratedFlow) => void;
+  loadDynamicFlow: (
+    flowData: GeneratedFlow,
+    project?: ProjectModel,
+    nodes?: ProjectNodeModel[],
+    edges?: ProjectEdgeModel[],
+  ) => void;
 }
 
 const Ctx = createContext<FlowStore | null>(null);
@@ -53,52 +58,24 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const loadDynamicFlow = useCallback(
     (
       flowData: GeneratedFlow,
-      overrideProject?: ProjectModel,
-      overrideNodes?: ProjectNodeModel[],
-      overrideEdges?: ProjectEdgeModel[],
+      project?: ProjectModel,
+      nodes?: ProjectNodeModel[],
+      edges?: ProjectEdgeModel[],
     ) => {
-      const project = overrideProject || {
-        id: `proj-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: flowData.name,
-        time: new Date().toISOString(),
-        tag: flowData.tag || "N/A",
-      };
-
-      setProjects((prev) => {
-        if (prev.find((p) => p.id === project.id)) return prev;
-        return [...prev, project];
-      });
-      setCurrentProject(project);
-
-      if (overrideNodes) {
-        setCurrentNodes(overrideNodes);
-      } else {
-        setCurrentNodes(
-          flowData.nodes.map((n: ProjectNode, i: number) => ({
-            id: `node-gen-${Date.now()}-${i}`,
-            projectId: project.id,
-            componentId: `comp-gen-${i}`,
-            positionX: n.positionX,
-            positionY: n.positionY,
-          })),
-        );
+      if (project) {
+        setProjects((prev) => {
+          if (prev.find((p) => p.id === project.id)) return prev;
+          return [...prev, project];
+        });
+        setCurrentProject(project);
       }
 
-      if (overrideEdges) {
-        setCurrentEdges(overrideEdges);
-      } else {
-        setCurrentEdges(
-          flowData.edges.map((e: ProjectEdge, i: number) => ({
-            id: `edge-gen-${Date.now()}-${i}`,
-            projectId: project.id,
-            sourceId: e.sourceId,
-            targetId: e.targetId,
-            label: e.label,
-            type: e.type,
-            sourceHandle: e.sourceHandle || "bottom",
-            targetHandle: e.targetHandle || "top",
-          })),
-        );
+      if (nodes) {
+        setCurrentNodes(nodes);
+      }
+      
+      if (edges) {
+        setCurrentEdges(edges);
       }
     },
     [],

@@ -64,7 +64,7 @@ export async function getProjectNodes(
 export async function createProjectNode(
   node: ProjectNodeModel,
 ): Promise<ProjectNodeModel> {
-  const res = await fetch(`${API_BASE}/nodes`, {
+  const res = await fetch(`${API_BASE}/${node.projectId}/nodes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(node),
@@ -94,6 +94,18 @@ export async function getProjectEdges(
   return res.json();
 }
 
+export async function createProjectEdge(
+  edge: ProjectEdgeModel,
+): Promise<ProjectEdgeModel> {
+  const res = await fetch(`${API_BASE}/${edge.projectId}/edges`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(edge),
+  });
+  if (!res.ok) throw new Error("Failed to create project edge");
+  return res.json();
+}
+
 export async function updateProjectEdge(
   edgeId: string,
   updated: Partial<ProjectEdgeModel>,
@@ -104,18 +116,6 @@ export async function updateProjectEdge(
     body: JSON.stringify(updated),
   });
   if (!res.ok) throw new Error("Failed to update project edge");
-  return res.json();
-}
-
-export async function createProjectEdge(
-  edge: ProjectEdgeModel,
-): Promise<ProjectEdgeModel> {
-  const res = await fetch(`${API_BASE}/edges`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(edge),
-  });
-  if (!res.ok) throw new Error("Failed to create project edge");
   return res.json();
 }
 

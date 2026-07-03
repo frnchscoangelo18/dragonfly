@@ -15,6 +15,8 @@ import {
 } from "../generate/types";
 import {
   ProjectComponentModel,
+  ProjectEdgeModel,
+  ProjectNodeModel,
   ProjectEdge,
   ProjectNode,
   ProjectTagEnum,
@@ -28,11 +30,12 @@ export async function syncGeneratedData(
   flowResult: GeneratedFlow,
   pdfBytes: ArrayBuffer,
 ): Promise<{
-  projectId: string;
+  project: any;
   projectTag: ProjectTagEnum;
   projectComponents: ProjectComponentModel[];
+  nodes: ProjectNodeModel[];
+  edges: ProjectEdgeModel[];
 }> {
-  console.log("syncGeneratedData called with:", { projectName, flowResult });
   // Convert tag from string to ProjectTagEnum
   const tagMap: Record<string, ProjectTagEnum> = {
     Robotics: ProjectTagEnum.ROBOTICS,
@@ -125,7 +128,7 @@ export async function syncGeneratedData(
 
       projectComponents.push(projectComp);
 
-      // Map the AI component name to the database ProjectComponent ID
+      // Map the AI component ID to the database ProjectComponent ID
       if (item.id) {
         componentIdMap[item.id] = projectComp.id;
       }
@@ -134,57 +137,43 @@ export async function syncGeneratedData(
 
   // 5. Save Visual Flow Nodes
   const nodeDbIds: Record<string, string> = {};
-  console.log("Processing nodes:", flowResult?.nodes);
+  const nodes: ProjectNodeModel[] = [];
+  
   if (flowResult && flowResult.nodes) {
     await Promise.all(
       flowResult.nodes.map(async (node: ProjectNode) => {
-        console.log("Processing node:", node);
         const compId = componentIdMap[node.id];
 
-        if (!compId) {
-          console.warn(
-            `Could not find ProjectComponent ID for node: ${node.id}. Available IDs:`,
-            Object.keys(componentIdMap)
-          );
-          return;
-        }
+        if (!compId) return;
 
         const nodeId = `node-gen-${Date.now()}-${Math.random()
           .toString(36)
           .substr(2, 9)}`;
         nodeDbIds[node.id] = nodeId;
 
-        console.log("Creating node in DB:", nodeId);
-        await createProjectNode({
+        const createdNode = await createProjectNode({
           id: nodeId,
           projectId: project.id,
           componentId: compId,
           positionX: node.positionX,
           positionY: node.positionY,
         });
+        nodes.push(createdNode);
       }),
     );
   }
 
   // 6. Save Visual Flow Edges
-  console.log("Processing edges:", flowResult?.edges);
+  const edges: ProjectEdgeModel[] = [];
   if (flowResult && flowResult.edges) {
     await Promise.all(
       flowResult.edges.map(async (edge: ProjectEdge) => {
-        console.log("Processing edge:", edge);
         const sourceId = nodeDbIds[edge.sourceId];
         const targetId = nodeDbIds[edge.targetId];
 
-        if (!sourceId || !targetId) {
-          console.warn(
-            `Could not find DB node IDs for edge: ${edge.sourceId} -> ${edge.targetId}. Available IDs:`,
-            Object.keys(nodeDbIds)
-          );
-          return;
-        }
+        if (!sourceId || !targetId) return;
 
-        console.log("Creating edge in DB:", edge);
-        await createProjectEdge({
+        const createdEdge = await createProjectEdge({
           id: `edge-gen-${Date.now()}-${Math.random()
             .toString(36)
             .substr(2, 9)}`,
@@ -194,9 +183,10 @@ export async function syncGeneratedData(
           label: edge.label,
           type: edge.type,
         });
+        edges.push(createdEdge);
       }),
     );
   }
 
-  return { projectId, projectTag, projectComponents };
+  return { project, projectTag, projectComponents, nodes, edges };
 }

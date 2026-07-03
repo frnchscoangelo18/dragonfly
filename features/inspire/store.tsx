@@ -26,8 +26,9 @@ import {
 import { BomAlert } from "@/features/bom/data";
 import { syncGeneratedData } from "@/lib/apis/project/syncClient";
 import { getMockData } from "./mockData";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-const USE_MOCK_DATA = false; // Toggle here
+const USE_MOCK_DATA = true; // Toggle here
 
 interface SelectedFile {
   file: File;
@@ -43,7 +44,7 @@ interface InspireStore {
   isLoading: boolean;
   loadingText: string;
   generate: (
-    router: any,
+    router: AppRouterInstance,
     loadDynamicProject: (
       projectName: string,
       tag: ProjectTagEnum,
@@ -52,7 +53,12 @@ interface InspireStore {
       newSpecs?: GeneratedSpecs,
       newPdfReport?: Blob | null,
     ) => void,
-    loadDynamicFlow: (flowData: GeneratedFlow) => void,
+    loadDynamicFlow: (
+      flowData: GeneratedFlow,
+      project?: any,
+      nodes?: any,
+      edges?: any,
+    ) => void,
   ) => Promise<void>;
   setLoadingState: (loading: boolean, text?: string) => void;
 }
@@ -88,7 +94,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
 
   const generate = useCallback(
     async (
-      router: any,
+      router: AppRouterInstance,
       loadDynamicProject: (
         projectName: string,
         tag: ProjectTagEnum,
@@ -97,7 +103,12 @@ export function InspireProvider({ children }: { children: ReactNode }) {
         newSpecs?: GeneratedSpecs,
         newPdfReport?: Blob | null,
       ) => void,
-      loadDynamicFlow: (flowData: GeneratedFlow) => void,
+      loadDynamicFlow: (
+      flowData: GeneratedFlow,
+      project?: any,
+      nodes?: any,
+      edges?: any,
+    ) => void,
     ) => {
       if (prompt.trim() === "" && selectedFiles.length === 0) {
         throw new Error("Prompt and files are empty");
@@ -183,7 +194,12 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           new Blob([pdfBytes], { type: "application/pdf" }),
         );
 
-        loadDynamicFlow(flowResult);
+        loadDynamicFlow(
+          flowResult,
+          syncResult.project,
+          syncResult.nodes,
+          syncResult.edges,
+        );
 
         router.push(
           `/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`,

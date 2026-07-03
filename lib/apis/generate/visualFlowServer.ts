@@ -33,14 +33,15 @@ export async function generateVisualFlowLogic(
     ai,
     contents,
     {
-      systemInstruction: `You are an expert System Architect and Electronics Engineer. Your task is to generate a visual dependency and signal flow mapping for an electronic circuit based on the provided Bill of Materials.
+      systemInstruction: `You are an expert System Architect. Your task is to generate a visual BLOCK DIAGRAM showing the signal and power flow of a system based on the provided Bill of Materials.
 
 CRITICAL INSTRUCTIONS:
-1. EXHAUSTIVE MAPPING: Every single component identified in the BOM CONTEXT must have a corresponding node. Do not omit any component.
-2. FULL CONNECTIVITY: Establish edges representing power (VCC/GND), signal, logic, or I2C connections based on the component roles defined in the BOM. Every node must be connected to the overall circuit flow via at least one edge.
-3. EDGE TYPES: For every edge, assign a type from the following set: 'power', 'signal', 'logic', 'i2c'.
-4. STRICT NAMING: The 'id' of each node MUST exactly match the component ID as listed in the BOM. This is critical for database synchronization.
-5. SPATIAL LAYOUT: Assign spatial coordinates (positionX, positionY) to enforce a strictly VERTICAL, TOP-TO-BOTTOM layout. Inputs and power sources MUST have smaller Y values (at the top), and outputs or actuators MUST have larger Y values (at the bottom). Nodes should be centered horizontally (constant or narrow-range positionX) to create a clean vertical column, avoiding horizontal spreading. Ensure a clean, non-overlapping layout.
+1. BLOCK DIAGRAM ONLY: Do NOT generate a circuit diagram. Do NOT create closed-loop circuits or cyclic feedback paths. The diagram must represent a unidirectional functional flow (e.g., Sensor -> MCU -> Actuator).
+2. EXHAUSTIVE MAPPING: Every single component identified in the BOM CONTEXT must have a corresponding node.
+3. HIERARCHICAL FLOW: Connections should represent functional flow of data, signal, or power, not raw wiring.
+4. EDGE TYPES: Assign a type from the following set: 'power', 'signal', 'logic', 'i2c'.
+5. STRICT NAMING: The 'id' of each node MUST exactly match the component ID as listed in the BOM.
+6. SPATIAL LAYOUT: Enforce a strictly VERTICAL, TOP-TO-BOTTOM layout. Components providing input (sensors, power) should have smaller Y values (at the top). Processing components (MCUs) should be in the middle. Output components (actuators, displays) should have larger Y values (at the bottom). Components at the same logical level should have the same Y value but be separated along the X-axis (min 200px horizontal spacing) to avoid overlap. Ensure a minimum vertical distance of at least 150px between different hierarchical levels (Y-axis spacing) to ensure edges are clearly visible and not too short. Maintain a clean, linear, non-overlapping flow.
 
 Return JSON with the following structure:
 {
