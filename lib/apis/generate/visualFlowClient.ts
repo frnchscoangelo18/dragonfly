@@ -1,13 +1,15 @@
 import { GeneratedFlow } from "@/lib/apis/generate/types";
 
 export async function generateVisualFlow(
-  bomContext: string,
+  bomComponentsContext: string,
+  specsContext: string,
   prompt: string | null,
   image: File | null,
   projectId: string,
 ): Promise<GeneratedFlow> {
   const formData = new FormData();
-  formData.append("bomContext", bomContext);
+  formData.append("bomComponentsContext", bomComponentsContext);
+  formData.append("specsContext", specsContext);
   if (prompt) formData.append("prompt", prompt);
   if (image) formData.append("image", image);
   formData.append("projectId", projectId);

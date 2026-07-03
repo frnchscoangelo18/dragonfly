@@ -31,7 +31,7 @@ import { syncGeneratedData } from "@/lib/apis/project/syncClient";
 import { getMockData } from "./mockData";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-const USE_MOCK_DATA = true; // Toggle here
+const USE_MOCK_DATA = false; // Toggle here
 
 interface SelectedFile {
   file: File;
@@ -160,7 +160,8 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           setLoadingTextState("Generating visual flow...");
           flowResult = await withRetry(async () => {
             return await generateVisualFlow(
-              JSON.stringify(bomResult),
+              JSON.stringify(bomResult.components),
+              JSON.stringify(specsData),
               sanitizedPrompt,
               imageFile,
               projectId,

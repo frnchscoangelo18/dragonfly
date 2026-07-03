@@ -9,7 +9,8 @@ import {
 import { GeneratedFlow } from "./types";
 
 export async function generateVisualFlowLogic(
-  bomContext: string,
+  bomComponentsContext: string,
+  specsContext: string,
   prompt: string | null,
   image: File | null,
   projectId: string,
@@ -30,10 +31,14 @@ export async function generateVisualFlowLogic(
     contents.push({ text: prompt });
   }
   contents.push({
-    text: `Based on the following Bill of Materials (BOM), generate a visual signal and power flow diagram.
+    text: `Based on the following Bill of Materials (BOM) and specs calculation, generate a visual signal and power flow diagram.
     
-    BOM CONTEXT:
-    ${bomContext}`,
+    BOM COMPONENTS CONTEXT:
+    ${bomComponentsContext}
+
+    SPECS CONTEXT:
+    ${specsContext}
+    `,
   });
 
   const result = await runWithModelFallback(
@@ -48,12 +53,12 @@ CRITICAL INSTRUCTIONS:
 3. HIERARCHICAL FLOW: Connections should represent functional flow of data, signal, or power, not raw wiring.
 4. EDGE TYPES: Assign a type from the following set: 'power', 'signal', 'logic', 'i2c'.
 5. STRICT NAMING: The 'id' of each node MUST exactly match the component ID as listed in the BOM.
-6. SPATIAL LAYOUT: Enforce a strictly VERTICAL, TOP-TO-BOTTOM layout. Components providing input (sensors, power) should have smaller Y values (at the top). Processing components (MCUs) should be in the middle. Output components (actuators, displays) should have larger Y values (at the bottom). Components at the same logical level should have the same Y value but be separated along the X-axis (min 200px horizontal spacing) to avoid overlap. Ensure a minimum vertical distance of at least 150px between different hierarchical levels (Y-axis spacing) to ensure edges are clearly visible and not too short. Maintain a clean, linear, non-overlapping flow.
+6. SPATIAL LAYOUT: Enforce a strictly VERTICAL, TOP-TO-BOTTOM layout. Components providing input (sensors, power) should have smaller Y values (at the top). Processing components (MCUs) should be in the middle. Output components (actuators, displays) should have larger Y values (at the bottom). Components at the same logical level should have the same Y value but must be spread significantly along the X-axis (min 250px horizontal spacing) to guarantee absolutely no overlapping of nodes. Prioritize clear horizontal spacing for nodes at the same level to maintain readability. Ensure a minimum vertical distance of at least 150px between different hierarchical levels (Y-axis spacing) to ensure edges are clearly visible and not too short. Maintain a clean, linear, non-overlapping flow.
 7. NODE ID CONSISTENCY: Follow the format 'node-{index}-{projectId}' for node IDs, where {index} is the zero-based index of the node in the nodes array and {projectId} is the unique identifier for the project. This ensures that each node ID is unique across different projects.
 8. EDGE ID CONSISTENCY: Follow the format 'edge-{index}-{projectId}' for edge IDs, where {index} is the zero-based index of the edge in the edges array and {projectId} is the unique identifier for the project. This ensures that each edge ID is unique across different projects.
 9. SOURCE AND TARGET ID CONSISTENCY: For each edge, the 'sourceId' and 'targetId' must reference the corresponding node IDs in the format 'node-{index}-{projectId}' to ensure proper linkage between nodes and edges.
 10. PROJECT ID: Here is the project ID for reference: ${projectId}.
-11. COMPONENT ID: Each node's 'componentId' must match the corresponding component ID from the BOM CONTEXT to ensure accurate mapping between nodes and components.
+11. COMPONENT ID: Each node's 'componentId' must match the corresponding IDs from the components, not the items, from the BOM CONTEXT to ensure accurate mapping between nodes and components.
 
 
 Return JSON with the following structure:

@@ -119,7 +119,7 @@ export function SubstituteSheet({
   useEffect(() => {
     if (subs.length === 1 && component) {
       swap(component.id, {
-        id: subs[0].id,
+        id: component.id,
         projectId: component.projectId,
         inventoryId: subs[0].id,
         name: subs[0].name,
@@ -216,7 +216,7 @@ export function SubstituteSheet({
                     whileTap={{ scale: 0.97 }}
                     onClick={() => {
                       swap(component.id, {
-                        id: s.id,
+                        id: component.id,
                         projectId: component.projectId,
                         inventoryId: s.id,
                         name: s.name,

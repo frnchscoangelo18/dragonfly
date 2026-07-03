@@ -4,20 +4,22 @@ import { generateVisualFlowLogic } from "@/lib/apis/generate/visualFlowServer";
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const bomContext = formData.get("bomContext") as string;
+    const bomComponentsContext = formData.get("bomComponentsContext") as string;
+    const specsContext = formData.get("specsContext") as string;
     const prompt = formData.get("prompt") as string | null;
     const image = formData.get("image") as File | null;
     const projectId = formData.get("projectId") as string;
 
-    if (!bomContext) {
+    if (!bomComponentsContext && !specsContext) {
       return NextResponse.json(
-        { error: "Missing bomContext" },
+        { error: "Missing bomComponentsContext or specsContext" },
         { status: 400 },
       );
     }
 
     const result = await generateVisualFlowLogic(
-      bomContext,
+      bomComponentsContext,
+      specsContext,
       prompt,
       image,
       projectId,

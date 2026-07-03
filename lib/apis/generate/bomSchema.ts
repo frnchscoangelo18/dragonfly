@@ -1,5 +1,6 @@
 import { Type, Schema } from "@google/genai";
 import { ProjectTagEnum } from "../project/types";
+import { ItemCategory } from "../inventory/types";
 
 export const BomExtractionSchema: Schema = {
   type: Type.OBJECT,
@@ -26,8 +27,7 @@ export const BomExtractionSchema: Schema = {
           qty: { type: Type.INTEGER },
           category: {
             type: Type.STRING,
-            enum: Object.values(ProjectTagEnum),
-            // enum: ["MCU", "Sensor", "Actuator", "Logic", "Power", "Passive"],
+            enum: Object.values(ItemCategory),
           },
         },
         required: ["name", "partNumber", "specs", "qty", "category"],
