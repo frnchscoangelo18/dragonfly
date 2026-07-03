@@ -82,7 +82,91 @@ export async function deleteProject(id: string): Promise<boolean> {
   return true;
 }
 
-// --- Nodes ---
+export async function createNodesBatch(
+  nodes: ProjectNodeModel[],
+): Promise<ProjectNodeModel[]> {
+  const { data, error } = await supabase
+    .from("project_nodes")
+    .insert(
+      nodes.map((node) => ({
+        id: node.id,
+        project_id: node.projectId,
+        component_id: node.componentId,
+        position_x: node.positionX,
+        position_y: node.positionY,
+      })),
+    )
+    .select();
+
+  if (error) throw new Error(`Error creating nodes batch: ${error.message}`);
+  return data.map((d) => ({
+    id: d.id,
+    projectId: d.project_id,
+    componentId: d.component_id,
+    positionX: d.position_x,
+    positionY: d.position_y,
+  }));
+}
+
+export async function createEdgesBatch(
+  edges: ProjectEdgeModel[],
+): Promise<ProjectEdgeModel[]> {
+  const { data, error } = await supabase
+    .from("project_edges")
+    .insert(
+      edges.map((edge) => ({
+        id: edge.id,
+        project_id: edge.projectId,
+        source_id: edge.sourceId,
+        target_id: edge.targetId,
+        source_handle: edge.sourceHandle,
+        target_handle: edge.targetHandle,
+        label: edge.label,
+        type: edge.type,
+      })),
+    )
+    .select();
+
+  if (error) throw new Error(`Error creating edges batch: ${error.message}`);
+  return data.map((d) => ({
+    id: d.id,
+    projectId: d.project_id,
+    sourceId: d.source_id,
+    targetId: d.target_id,
+    sourceHandle: d.source_handle,
+    targetHandle: d.target_handle,
+    label: d.label,
+    type: d.type,
+  }));
+}
+
+export async function createComponentsBatch(
+  components: ProjectComponentModel[],
+): Promise<ProjectComponentModel[]> {
+  const { data, error } = await supabase
+    .from("project_components")
+    .insert(
+      components.map((comp) => ({
+        id: comp.id,
+        project_id: comp.projectId,
+        inventory_id: comp.inventoryId,
+        name: comp.name,
+        part_number: comp.partNumber,
+        specs: comp.specs,
+        unit_price: comp.unitPrice,
+        qty: comp.qty,
+        category: comp.category,
+        pins: comp.pins,
+        details: comp.details,
+      })),
+    )
+    .select("project_id");
+
+  if (error) throw new Error(`Error creating components batch: ${error.message}`);
+  
+  // Fetch updated data to include dynamic stock info from JOIN
+  return await getComponentsByProjectId(data[0].project_id);
+}
 
 export async function getNodesByProjectId(
   projectId: string,
@@ -105,13 +189,14 @@ export async function getNodesByProjectId(
 
 export async function createNode(
   node: ProjectNodeModel,
+  projectId: string,
 ): Promise<ProjectNodeModel> {
   const { data, error } = await supabase
     .from("project_nodes")
     .insert([
       {
         id: node.id,
-        project_id: node.projectId,
+        project_id: projectId,
         component_id: node.componentId,
         position_x: node.positionX,
         position_y: node.positionY,
@@ -195,13 +280,14 @@ export async function getEdgesByProjectId(
 
 export async function createEdge(
   edge: ProjectEdgeModel,
+  projectId: string,
 ): Promise<ProjectEdgeModel> {
   const { data, error } = await supabase
     .from("project_edges")
     .insert([
       {
         id: edge.id,
-        project_id: edge.projectId,
+        project_id: projectId,
         source_id: edge.sourceId,
         target_id: edge.targetId,
         source_handle: edge.sourceHandle,

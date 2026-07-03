@@ -1,8 +1,4 @@
-import {
-  GoogleGenAI,
-  GenerateContentConfig,
-  GenerateContentResponse,
-} from "@google/genai";
+import { GoogleGenAI, GenerateContentConfig } from "@google/genai";
 
 export const DEFAULT_MAX_RETRIES = 10;
 export const DEFAULT_BASE_DELAY_MS = 2000;
@@ -66,4 +62,17 @@ export async function runWithModelFallback<T>(
   }
 
   throw new Error("All model attempts failed");
+}
+
+export function normalizeGenerationTimestamp(
+  generationTimestamp?: string,
+): string {
+  if (!generationTimestamp) {
+    return Date.now().toString();
+  }
+  const parsedTimestamp = Date.parse(generationTimestamp);
+  if (Number.isNaN(parsedTimestamp)) {
+    return Date.now().toString();
+  }
+  return parsedTimestamp.toString();
 }

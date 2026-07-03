@@ -5,6 +5,8 @@ import {
   ProjectSubstituteModel,
   ProjectComponentModel,
   ProjectSpecsReportModel,
+  ComponentNodeType,
+  ComponentEdgeType,
 } from "./types";
 
 // const API_BASE = "/api/v1/projects";
@@ -62,14 +64,67 @@ export async function getProjectNodes(
 }
 
 export async function createProjectNode(
-  node: ProjectNodeModel,
+  node: ComponentNodeType,
+  projectId: string,
 ): Promise<ProjectNodeModel> {
-  const res = await fetch(`${API_BASE}/${node.projectId}/nodes`, {
+  const res = await fetch(`${API_BASE}/${projectId}/nodes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(node),
   });
   if (!res.ok) throw new Error("Failed to create project node");
+  return res.json();
+}
+
+export async function createProjectEdge(
+  edge: ComponentEdgeType,
+  projectId: string,
+): Promise<ProjectEdgeModel> {
+  const res = await fetch(`${API_BASE}/${projectId}/edges`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(edge),
+  });
+  if (!res.ok) throw new Error("Failed to create project edge");
+  return res.json();
+}
+
+export async function createProjectNodesBatch(
+  projectId: string,
+  nodes: ComponentNodeType[],
+): Promise<ProjectNodeModel[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/nodes/bulk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(nodes),
+  });
+  if (!res.ok) throw new Error("Failed to create project nodes batch");
+  return res.json();
+}
+
+export async function createProjectEdgesBatch(
+  projectId: string,
+  edges: ComponentEdgeType[],
+): Promise<ProjectEdgeModel[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/edges/bulk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(edges),
+  });
+  if (!res.ok) throw new Error("Failed to create project edges batch");
+  return res.json();
+}
+
+export async function createProjectComponentsBatch(
+  projectId: string,
+  components: Omit<ProjectComponentModel, "projectId">[],
+): Promise<ProjectComponentModel[]> {
+  const res = await fetch(`${API_BASE}/${projectId}/components/bulk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(components),
+  });
+  if (!res.ok) throw new Error("Failed to create project components batch");
   return res.json();
 }
 
@@ -94,17 +149,8 @@ export async function getProjectEdges(
   return res.json();
 }
 
-export async function createProjectEdge(
-  edge: ProjectEdgeModel,
-): Promise<ProjectEdgeModel> {
-  const res = await fetch(`${API_BASE}/${edge.projectId}/edges`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(edge),
-  });
-  if (!res.ok) throw new Error("Failed to create project edge");
-  return res.json();
-}
+// Node creation method is replaced by bulk method.
+
 
 export async function updateProjectEdge(
   edgeId: string,

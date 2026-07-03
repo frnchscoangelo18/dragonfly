@@ -21,6 +21,9 @@ import {
 } from "@/lib/apis/generate/types";
 import {
   ProjectComponentModel,
+  ProjectEdgeModel,
+  ProjectModel,
+  ProjectNodeModel,
   ProjectTagEnum,
 } from "@/lib/apis/project/types";
 import { BomAlert } from "@/features/bom/data";
@@ -28,7 +31,7 @@ import { syncGeneratedData } from "@/lib/apis/project/syncClient";
 import { getMockData } from "./mockData";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-const USE_MOCK_DATA = true; // Toggle here
+const USE_MOCK_DATA = false; // Toggle here
 
 interface SelectedFile {
   file: File;
@@ -55,9 +58,9 @@ interface InspireStore {
     ) => void,
     loadDynamicFlow: (
       flowData: GeneratedFlow,
-      project?: any,
-      nodes?: any,
-      edges?: any,
+      project?: ProjectModel,
+      nodes?: ProjectNodeModel[],
+      edges?: ProjectEdgeModel[],
     ) => void,
   ) => Promise<void>;
   setLoadingState: (loading: boolean, text?: string) => void;
@@ -104,11 +107,11 @@ export function InspireProvider({ children }: { children: ReactNode }) {
         newPdfReport?: Blob | null,
       ) => void,
       loadDynamicFlow: (
-      flowData: GeneratedFlow,
-      project?: any,
-      nodes?: any,
-      edges?: any,
-    ) => void,
+        flowData: GeneratedFlow,
+        project?: ProjectModel,
+        nodes?: ProjectNodeModel[],
+        edges?: ProjectEdgeModel[],
+      ) => void,
     ) => {
       if (prompt.trim() === "" && selectedFiles.length === 0) {
         throw new Error("Prompt and files are empty");

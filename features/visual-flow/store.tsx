@@ -14,8 +14,6 @@ import {
   ProjectNodeModel,
   ProjectEdgeModel,
   ProjectComponentModel,
-  ProjectNode,
-  ProjectEdge,
 } from "@/lib/apis/project/types";
 import { ItemModel } from "@/lib/apis/inventory/types";
 import { GeneratedFlow } from "@/lib/apis/generate/types";
@@ -73,7 +71,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       if (nodes) {
         setCurrentNodes(nodes);
       }
-      
+
       if (edges) {
         setCurrentEdges(edges);
       }

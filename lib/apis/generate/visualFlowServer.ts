@@ -1,14 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 import { getNextApiKey } from "./keyCycler";
-import { runWithModelFallback } from "./utils";
+import { normalizeGenerationTimestamp, runWithModelFallback } from "./utils";
+import { ConnectionEnum, ProjectTagEnum } from "../project/types";
 
 export async function generateVisualFlowLogic(
   bomContext: string,
   prompt: string | null,
   image: File | null,
+  generationTimestamp?: string,
 ) {
   const ai = new GoogleGenAI({ apiKey: getNextApiKey() });
-  
+  const generationSuffix = normalizeGenerationTimestamp(generationTimestamp);
+
   const contents = [];
   if (image) {
     const buffer = Buffer.from(await image.arrayBuffer());
@@ -29,7 +32,7 @@ export async function generateVisualFlowLogic(
     ${bomContext}`,
   });
 
-  return runWithModelFallback(
+  const result = await runWithModelFallback(
     ai,
     contents,
     {
@@ -48,7 +51,7 @@ Return JSON with the following structure:
   "name": string,
   "tag": "Robotics" | "IoT" | "Power" | "Networking" | "Mechatronics" | "N/A",
   "nodes": [
-    { "id": string, "positionX": number, "positionY": number }
+    { "id": string, "componentId": string, "positionX": number, "positionY": number }
   ],
   "edges": [
     { "id": string, "sourceId": string, "targetId": string, "label": string, "type": "power" | "signal" | "logic" | "i2c" }
@@ -56,6 +59,33 @@ Return JSON with the following structure:
 }`,
       responseMimeType: "application/json",
     },
-    JSON.parse,
+    JSON.parse as (text: string) => {
+      name: string;
+      tag: ProjectTagEnum;
+      nodes: {
+        id: string;
+        componentId: string;
+        positionX: number;
+        positionY: number;
+      }[];
+      edges: {
+        id: string;
+        sourceId: string;
+        targetId: string;
+        label: string;
+        type: ConnectionEnum;
+      }[];
+    },
   );
+
+  return {
+    ...result,
+    nodes: result.nodes.map((n) => ({ ...n, id: `${n.id}-${generationSuffix}` })),
+    edges: result.edges.map((e) => ({
+      ...e,
+      id: `${e.id}-${generationSuffix}`,
+      sourceId: `${e.sourceId}-${generationSuffix}`,
+      targetId: `${e.targetId}-${generationSuffix}`,
+    })),
+  };
 }

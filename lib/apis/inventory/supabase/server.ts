@@ -126,6 +126,42 @@ export async function updateItem(
   };
 }
 
+export async function createItemsBatch(
+  components: ItemModel[],
+): Promise<ItemModel[]> {
+  const { data, error } = await supabase
+    .from("inventory")
+    .insert(
+      components.map((c) => ({
+        id: c.id,
+        name: c.name,
+        part_number: c.partNumber,
+        specs: c.specs,
+        unit_price: c.unitPrice,
+        stock: c.stock,
+        stock_count: c.stockCount,
+        category: c.category,
+        pins: c.pins,
+        details: c.details,
+      })),
+    )
+    .select();
+
+  if (error) throw new Error(`Error creating components batch: ${error.message}`);
+  return data.map((d) => ({
+    id: d.id,
+    name: d.name,
+    partNumber: d.part_number,
+    specs: d.specs,
+    unitPrice: d.unit_price,
+    stock: d.stock,
+    stockCount: d.stock_count,
+    category: d.category,
+    pins: d.pins,
+    details: d.details,
+  }));
+}
+
 export async function deleteItem(id: string): Promise<boolean> {
   const { error } = await supabase.from("inventory").delete().eq("id", id);
 

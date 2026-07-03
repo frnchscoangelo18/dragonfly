@@ -284,16 +284,16 @@ export default function FlowScreen() {
       );
       const edgeCreatePromises = newEdges.map((uiEdge, idx) => {
         const uniqueId = `edge_${Date.now()}_${Math.random().toString(36).substr(2, 5)}_${idx}`;
-        return createProjectEdge({
-          id: uniqueId,
-          projectId: currentProject.id,
-          sourceId: uiEdge.source,
-          targetId: uiEdge.target,
-          sourceHandle: (uiEdge.sourceHandle as any) || "bottom",
-          targetHandle: (uiEdge.targetHandle as any) || "top",
-          label: typeof uiEdge.label === "string" ? uiEdge.label : "",
-          type: (uiEdge.type as any) || "logic",
-        });
+        return createProjectEdge(
+          {
+            id: uniqueId,
+            sourceId: uiEdge.source,
+            targetId: uiEdge.target,
+            label: typeof uiEdge.label === "string" ? uiEdge.label : "",
+            type: (uiEdge.type as any) || "logic",
+          },
+          currentProject.id,
+        );
       });
 
       // 4. Identify edge updates (e.g. if handles are re-routed on same edge ID)

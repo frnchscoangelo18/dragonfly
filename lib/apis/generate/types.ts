@@ -1,6 +1,10 @@
 import { ItemDetails, StockStatus } from "@/lib/apis/inventory/types";
 import { BomAlert } from "@/features/bom/data";
-import { ProjectEdge, ProjectNode, ProjectTagEnum } from "../project/types";
+import {
+  ComponentEdgeType,
+  ComponentNodeType,
+  ProjectTagEnum,
+} from "../project/types";
 
 export interface GeneratedSpecs {
   specs: Array<{
@@ -40,6 +44,6 @@ export interface GeneratedBOM {
 export interface GeneratedFlow {
   name: string;
   tag: ProjectTagEnum;
-  nodes: ProjectNode[];
-  edges: ProjectEdge[];
+  nodes: ComponentNodeType[];
+  edges: ComponentEdgeType[];
 }

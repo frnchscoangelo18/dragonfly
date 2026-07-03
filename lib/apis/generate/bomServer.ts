@@ -1,17 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 import { BomExtractionSchema } from "@/lib/apis/generate/bomSchema";
 import { resolveComponentPricing } from "@/lib/pricing";
-import {
-  ItemModel,
-  StockStatus,
-  ItemCategory,
-} from "@/lib/apis/inventory/types";
+import { ItemModel, StockStatus } from "@/lib/apis/inventory/types";
 import { type BomAlert } from "@/features/bom/data";
 import { ProjectTagEnum } from "@/lib/apis/project/types";
 import { GeneratedBOM, GeneratedBOMItem } from "./types";
 import { createItem } from "@/lib/apis/inventory/client";
 import { getNextApiKey } from "./keyCycler";
-import { runWithModelFallback } from "./utils";
+import { normalizeGenerationTimestamp, runWithModelFallback } from "./utils";
 
 // Helper for deterministic IDs
 function slugify(text: string) {
@@ -22,17 +18,6 @@ function slugify(text: string) {
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-");
-}
-
-function normalizeGenerationTimestamp(generationTimestamp?: string): string {
-  if (!generationTimestamp) {
-    return Date.now().toString();
-  }
-  const parsedTimestamp = Date.parse(generationTimestamp);
-  if (Number.isNaN(parsedTimestamp)) {
-    return Date.now().toString();
-  }
-  return parsedTimestamp.toString();
 }
 
 export async function generateBomLogic(
@@ -73,11 +58,12 @@ CRITICAL INSTRUCTIONS:
       responseMimeType: "application/json",
       responseSchema: BomExtractionSchema,
     },
-    (text) => JSON.parse(text || "{}") as {
-      items: ItemModel[];
-      alerts: BomAlert[];
-      tag: ProjectTagEnum;
-    },
+    (text) =>
+      JSON.parse(text || "{}") as {
+        items: ItemModel[];
+        alerts: BomAlert[];
+        tag: ProjectTagEnum;
+      },
   );
 
   const extractedItems = extraction.items || [];
