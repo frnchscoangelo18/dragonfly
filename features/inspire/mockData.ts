@@ -1,14 +1,18 @@
-import {
-  GeneratedSpecs,
-  GeneratedFlow,
-  GeneratedBOM,
-} from "@/lib/apis/generate/types";
 import { ConnectionEnum, ProjectTagEnum } from "@/lib/apis/project/types";
 import { ItemCategory, StockStatus } from "@/lib/apis/inventory/types";
+import {
+  GeneratedBOM,
+  GeneratedFlow,
+  GeneratedSpecs,
+} from "@/lib/apis/generate/types";
 
-export const getMockData = () => {
+export const getMockData = (projectId: string) => {
   const timestamp = Date.now();
-  return {
+  const mockData: {
+    specsData: GeneratedSpecs;
+    bomResult: GeneratedBOM;
+    flowResult: GeneratedFlow;
+  } = {
     specsData: {
       specs: [
         {
@@ -21,29 +25,57 @@ export const getMockData = () => {
       summary: "Test Summary",
     },
     bomResult: {
-      tag: "IoT",
+      tag: ProjectTagEnum.IOT,
       items: [
         {
-          id: `comp-1-${timestamp}`,
+          id: `item-1-${timestamp}`,
           name: "MCU",
           partNumber: "123",
           unitPrice: 10,
           stock: StockStatus.IN_STOCK,
           stockCount: 5,
-          category: "MCU",
+          category: ItemCategory.MCU,
           pins: [],
-          storeOptions: [],
+          specs: "Test Specs",
         },
         {
-          id: `comp-2-${timestamp}`,
+          id: `item-2-${timestamp}`,
           name: "Sensor",
           partNumber: "456",
           unitPrice: 5,
           stock: StockStatus.IN_STOCK,
           stockCount: 10,
-          category: "Sensor",
+          category: ItemCategory.Sensor,
           pins: [],
-          storeOptions: [],
+          specs: "Test Specs",
+        },
+      ],
+      components: [
+        {
+          id: `comp-1-${projectId}`,
+          name: "MCU",
+          inventoryId: `item-1-${timestamp}`,
+          partNumber: "123",
+          unitPrice: 10,
+          qty: 1,
+          stock: StockStatus.IN_STOCK,
+          stockCount: 5,
+          category: ItemCategory.MCU,
+          pins: [],
+          specs: "Test Specs",
+        },
+        {
+          id: `comp-2-${projectId}`,
+          name: "Sensor",
+          inventoryId: `item-2-${timestamp}`,
+          partNumber: "456",
+          unitPrice: 5,
+          qty: 2,
+          stock: StockStatus.IN_STOCK,
+          stockCount: 10,
+          category: ItemCategory.Sensor,
+          pins: [],
+          specs: "Test Specs",
         },
       ],
       alerts: [],
@@ -53,14 +85,14 @@ export const getMockData = () => {
       tag: ProjectTagEnum.IOT,
       nodes: [
         {
-          id: `node-1-${timestamp}`,
-          componentId: `comp-1-${timestamp}`,
+          id: `node-1-${projectId}`,
+          componentId: `comp-1-${projectId}`,
           positionX: 100,
           positionY: 100,
         },
         {
-          id: `node-2-${timestamp}`,
-          componentId: `comp-2-${timestamp}`,
+          id: `node-2-${projectId}`,
+          componentId: `comp-2-${projectId}`,
           positionX: 100,
           positionY: 250,
         },
@@ -68,12 +100,13 @@ export const getMockData = () => {
       edges: [
         {
           id: `edge-1-${timestamp}`,
-          sourceId: `node-1-${timestamp}`,
-          targetId: `node-2-${timestamp}`,
+          sourceId: `node-1-${projectId}`,
+          targetId: `node-2-${projectId}`,
           label: "link",
           type: ConnectionEnum.I2C,
         },
       ],
     },
   };
+  return mockData;
 };

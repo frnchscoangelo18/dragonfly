@@ -6,9 +6,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const specsContext = formData.get("specsContext") as string;
     const image = formData.get("image") as File | null;
-    const generationTimestamp = formData.get("generationTimestamp") as
-      | string
-      | null;
+    const projectId = formData.get("projectId") as string;
 
     if (!specsContext) {
       return NextResponse.json(
@@ -17,11 +15,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await generateBomLogic(
-      specsContext,
-      image,
-      generationTimestamp ?? undefined,
-    );
+    const result = await generateBomLogic(specsContext, image, projectId);
     return NextResponse.json(result);
   } catch (error) {
     console.error("BOM Gen Error:", error);

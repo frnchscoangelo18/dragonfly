@@ -4,8 +4,7 @@ import { resolveComponentPricing } from "@/lib/pricing";
 import { ItemModel, StockStatus } from "@/lib/apis/inventory/types";
 import { type BomAlert } from "@/features/bom/data";
 import { ProjectTagEnum } from "@/lib/apis/project/types";
-import { GeneratedBOM, GeneratedBOMItem } from "./types";
-import { createItem } from "@/lib/apis/inventory/client";
+import { GeneratedBOM } from "./types";
 import { getNextApiKey } from "./keyCycler";
 import { normalizeGenerationTimestamp, runWithModelFallback } from "./utils";
 
@@ -23,6 +22,7 @@ function slugify(text: string) {
 export async function generateBomLogic(
   prompt: string | null,
   image: File | null,
+  projectId: string,
   generationTimestamp?: string,
 ): Promise<GeneratedBOM> {
   const ai = new GoogleGenAI({ apiKey: getNextApiKey() });
@@ -69,9 +69,9 @@ CRITICAL INSTRUCTIONS:
   const extractedItems = extraction.items || [];
 
   // 3. Pricing Engine & Inventory Creation Logic
-  const itemsWithPricing = await Promise.all(
+  const items = await Promise.all(
     extractedItems.map(
-      async (item: ItemModel, index: number): Promise<GeneratedBOMItem> => {
+      async (item: ItemModel, index: number): Promise<ItemModel> => {
         // Run real web search / scraping
         const storeOptions = await resolveComponentPricing(
           item.name,
@@ -98,23 +98,23 @@ CRITICAL INSTRUCTIONS:
         const stock = isInStock ? StockStatus.IN_STOCK : StockStatus.OUT;
         const generatedItemId = `c-gen-${slugify(item.name)}-${generationSuffix}-${index}`;
 
-        // Simulate inventory creation
-        try {
-          await createItem({
-            id: generatedItemId,
-            name: item.name,
-            partNumber: item.partNumber,
-            specs: item.specs,
-            unitPrice: cheapestOption ? cheapestOption.price : 0,
-            stock,
-            stockCount,
-            category: item.category,
-            pins: item.pins || [],
-            details: item.details,
-          });
-        } catch (err) {
-          console.warn(`Could not sync item to inventory: ${item.name}`, err);
-        }
+        // // Simulate inventory creation
+        // try {
+        //   await createItem({
+        //     id: generatedItemId,
+        //     name: item.name,
+        //     partNumber: item.partNumber,
+        //     specs: item.specs,
+        //     unitPrice: cheapestOption ? cheapestOption.price : 0,
+        //     stock,
+        //     stockCount,
+        //     category: item.category,
+        //     pins: item.pins || [],
+        //     details: item.details,
+        //   });
+        // } catch (err) {
+        //   console.warn(`Could not sync item to inventory: ${item.name}`, err);
+        // }
 
         return {
           id: generatedItemId,
@@ -127,14 +127,28 @@ CRITICAL INSTRUCTIONS:
           category: item.category,
           pins: item.pins || [],
           details: item.details,
-          storeOptions,
         };
       },
     ),
   );
 
+  const components = items.map((item, idx) => ({
+    id: `comp-${idx}-${projectId}`,
+    name: item.name,
+    inventoryId: item.id,
+    partNumber: item.partNumber,
+    unitPrice: item.unitPrice,
+    qty: 1, // Default quantity, can be adjusted later
+    stock: item.stock,
+    stockCount: item.stockCount,
+    category: item.category,
+    pins: item.pins || [],
+    specs: item.specs,
+  }));
+
   return {
-    items: itemsWithPricing,
+    items,
+    components,
     alerts: extraction.alerts || [],
     tag: extraction.tag || ProjectTagEnum.NA,
   };

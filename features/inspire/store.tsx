@@ -31,7 +31,7 @@ import { syncGeneratedData } from "@/lib/apis/project/syncClient";
 import { getMockData } from "./mockData";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-const USE_MOCK_DATA = false; // Toggle here
+const USE_MOCK_DATA = true; // Toggle here
 
 interface SelectedFile {
   file: File;
@@ -125,16 +125,19 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           ? prompt.replace(/[^\x00-\x7F]/g, "")
           : null;
 
+        // projectId
+        const timestamp = new Date().toISOString();
+        const projectId = `project-${timestamp}`;
+
         // 1. Specs
         setLoadingTextState("Calculating specs...");
-        const generationTimestamp = new Date().toISOString();
         let specsData: GeneratedSpecs;
         let bomResult: GeneratedBOM;
         let flowResult: GeneratedFlow;
 
         if (USE_MOCK_DATA) {
           console.log("Using Mock Data");
-          const mock = getMockData();
+          const mock = getMockData(projectId);
           specsData = mock.specsData;
           bomResult = mock.bomResult;
           flowResult = mock.flowResult;
@@ -149,11 +152,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           // 2. BOM
           setLoadingTextState("Generating BOM...");
           bomResult = await withRetry(async () => {
-            return await generateBOM(
-              specsContext,
-              imageFile,
-              generationTimestamp,
-            );
+            return await generateBOM(specsContext, imageFile, projectId);
           });
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -164,6 +163,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
               JSON.stringify(bomResult),
               sanitizedPrompt,
               imageFile,
+              projectId,
             );
           });
         }

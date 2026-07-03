@@ -69,67 +69,11 @@ export async function syncGeneratedData(
   });
 
   // 4. Save Inventory Items & Link to Project Components
-  const inventoryItems: ItemModel[] = bomResult.items.map((item, idx) => {
-    const categoryMap: Record<string, ItemCategory> = {
-      MCU: ItemCategory.MCU,
-      Sensor: ItemCategory.Sensor,
-      Actuator: ItemCategory.Actuator,
-      Logic: ItemCategory.Logic,
-      Power: ItemCategory.Power,
-      Passive: ItemCategory.Passive,
-      IoT: ItemCategory.MCU,
-      Robotics: ItemCategory.Actuator,
-      Networking: ItemCategory.Logic,
-      Mechatronics: ItemCategory.Actuator,
-    };
-    const validCategory = categoryMap[item.category] || ItemCategory.Logic;
-
-    return {
-      id: item.id,
-      name: item.name,
-      partNumber: item.partNumber,
-      category: validCategory,
-      specs: item.specs || "",
-      details: item.details,
-      unitPrice: item.unitPrice,
-      stock: item.stock,
-      stockCount: item.stockCount,
-      pins: item.pins || [],
-    };
-  });
-  await createItemsBatch(inventoryItems);
+  await createItemsBatch(bomResult.items);
 
   const projectComponents = await createProjectComponentsBatch(
-    project.id,
-    bomResult.items.map((item, idx) => {
-      const categoryMap: Record<string, ItemCategory> = {
-        MCU: ItemCategory.MCU,
-        Sensor: ItemCategory.Sensor,
-        Actuator: ItemCategory.Actuator,
-        Logic: ItemCategory.Logic,
-        Power: ItemCategory.Power,
-        Passive: ItemCategory.Passive,
-        IoT: ItemCategory.MCU,
-        Robotics: ItemCategory.Actuator,
-        Networking: ItemCategory.Logic,
-        Mechatronics: ItemCategory.Actuator,
-      };
-      const validCategory = categoryMap[item.category] || ItemCategory.Logic;
-
-      return {
-        id: item.id,
-        inventoryId: item.id,
-        qty: 1,
-        name: item.name,
-        partNumber: item.partNumber,
-        category: validCategory,
-        specs: item.specs || "",
-        unitPrice: item.unitPrice,
-        stock: item.stock,
-        stockCount: item.stockCount,
-        pins: item.pins || [],
-      };
-    }),
+    projectId,
+    bomResult.components,
   );
 
   // 5. Save Visual Flow Nodes

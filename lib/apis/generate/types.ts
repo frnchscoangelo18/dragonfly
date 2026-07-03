@@ -1,8 +1,13 @@
-import { ItemDetails, StockStatus } from "@/lib/apis/inventory/types";
+import {
+  ItemDetails,
+  ItemModel,
+  StockStatus,
+} from "@/lib/apis/inventory/types";
 import { BomAlert } from "@/features/bom/data";
 import {
   ComponentEdgeType,
   ComponentNodeType,
+  ProjectComponentModel,
   ProjectTagEnum,
 } from "../project/types";
 
@@ -16,29 +21,30 @@ export interface GeneratedSpecs {
   summary: string;
 }
 
-export interface GeneratedBOMItem {
-  id: string;
-  name: string;
-  partNumber: string;
-  unitPrice: number;
-  stock: StockStatus;
-  stockCount: number;
-  category: string;
-  specs?: string;
-  pins: string[];
-  details?: ItemDetails;
-  storeOptions: Array<{
-    id: string;
-    price: number;
-    inStock: boolean;
-    isCheapest: boolean;
-  }>;
-}
+// export interface GeneratedBOMItem {
+//   id: string;
+//   name: string;
+//   partNumber: string;
+//   unitPrice: number;
+//   stock: StockStatus;
+//   stockCount: number;
+//   category: string;
+//   specs?: string;
+//   pins: string[];
+//   details?: ItemDetails;
+//   storeOptions: Array<{
+//     id: string;
+//     price: number;
+//     inStock: boolean;
+//     isCheapest: boolean;
+//   }>;
+// }
 
 export interface GeneratedBOM {
-  items: GeneratedBOMItem[];
+  items: ItemModel[];
+  components: Omit<ProjectComponentModel, "projectId">[];
   alerts: BomAlert[];
-  tag: string;
+  tag: ProjectTagEnum;
 }
 
 export interface GeneratedFlow {

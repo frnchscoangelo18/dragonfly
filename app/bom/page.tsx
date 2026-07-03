@@ -202,6 +202,7 @@ export default function BomScreen() {
           const updates = components.filter((c) => {
             const oc = originalComponents.find((o) => o.id === c.id);
             if (!oc) return false;
+            // Compare relevant fields for updates
             return (
               c.qty !== oc.qty ||
               c.inventoryId !== oc.inventoryId ||

@@ -33,6 +33,43 @@ export const BomExtractionSchema: Schema = {
         required: ["name", "partNumber", "specs", "qty", "category"],
       },
     },
+    components: {
+      type: Type.ARRAY,
+      description:
+        "List of components with inventory details, derived from the items.",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          id: { type: Type.STRING },
+          name: { type: Type.STRING },
+          inventoryId: { type: Type.STRING },
+          partNumber: { type: Type.STRING },
+          unitPrice: { type: Type.NUMBER },
+          qty: { type: Type.INTEGER },
+          stock: { type: Type.STRING },
+          stockCount: { type: Type.INTEGER },
+          category: { type: Type.STRING },
+          pins: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description:
+              "List of pin names or numbers for the component, if applicable.",
+          },
+          specs: { type: Type.STRING },
+        },
+        required: [
+          "id",
+          "name",
+          "inventoryId",
+          "partNumber",
+          "unitPrice",
+          "qty",
+          "stock",
+          "stockCount",
+          "category",
+        ],
+      },
+    },
     alerts: {
       type: Type.ARRAY,
       description:

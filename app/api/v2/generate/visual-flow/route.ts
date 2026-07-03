@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
     const bomContext = formData.get("bomContext") as string;
     const prompt = formData.get("prompt") as string | null;
     const image = formData.get("image") as File | null;
+    const projectId = formData.get("projectId") as string;
 
     if (!bomContext) {
       return NextResponse.json(
@@ -15,7 +16,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await generateVisualFlowLogic(bomContext, prompt, image);
+    const result = await generateVisualFlowLogic(
+      bomContext,
+      prompt,
+      image,
+      projectId,
+    );
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Visual Flow Generation Error:", error);
