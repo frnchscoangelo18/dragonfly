@@ -13,21 +13,30 @@ import {
   ProjectModel,
   ProjectNodeModel,
   ProjectEdgeModel,
+  ProjectComponentModel,
 } from "@/lib/apis/project/types";
 import { ItemModel } from "@/lib/apis/inventory/types";
+import { GeneratedFlow } from "@/lib/apis/generate/types";
 
 interface FlowStore {
   currentProject: ProjectModel | null;
-  setCurrentProject: (project: ProjectModel | null) => void;
+  setCurrentProject: Dispatch<SetStateAction<ProjectModel | null>>;
   currentNodes: ProjectNodeModel[];
-  setCurrentNodes: (nodes: ProjectNodeModel[]) => void;
+  setCurrentNodes: Dispatch<SetStateAction<ProjectNodeModel[]>>;
   currentEdges: ProjectEdgeModel[];
-  setCurrentEdges: (edges: ProjectEdgeModel[]) => void;
+  setCurrentEdges: Dispatch<SetStateAction<ProjectEdgeModel[]>>;
+  projectComponents: ProjectComponentModel[];
+  setProjectComponents: Dispatch<SetStateAction<ProjectComponentModel[]>>;
   inventory: ItemModel[];
-  setInventory: (inventory: ItemModel[]) => void;
+  setInventory: Dispatch<SetStateAction<ItemModel[]>>;
   projects: ProjectModel[];
   setProjects: Dispatch<SetStateAction<ProjectModel[]>>;
-  loadDynamicFlow: (flowData: any) => void;
+  loadDynamicFlow: (
+    flowData: GeneratedFlow,
+    project?: ProjectModel,
+    nodes?: ProjectNodeModel[],
+    edges?: ProjectEdgeModel[],
+  ) => void;
 }
 
 const Ctx = createContext<FlowStore | null>(null);
@@ -38,42 +47,37 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   );
   const [currentNodes, setCurrentNodes] = useState<ProjectNodeModel[]>([]);
   const [currentEdges, setCurrentEdges] = useState<ProjectEdgeModel[]>([]);
+  const [projectComponents, setProjectComponents] = useState<
+    ProjectComponentModel[]
+  >([]);
   const [inventory, setInventory] = useState<ItemModel[]>([]);
   const [projects, setProjects] = useState<ProjectModel[]>([]);
 
-  const loadDynamicFlow = useCallback((flowData: any) => {
-    const project = {
-      id: `proj-gen-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: flowData.name,
-      time: new Date().toISOString(),
-      tag: flowData.tag || "N/A",
-    };
+  const loadDynamicFlow = useCallback(
+    (
+      flowData: GeneratedFlow,
+      project?: ProjectModel,
+      nodes?: ProjectNodeModel[],
+      edges?: ProjectEdgeModel[],
+    ) => {
+      if (project) {
+        setProjects((prev) => {
+          if (prev.find((p) => p.id === project.id)) return prev;
+          return [...prev, project];
+        });
+        setCurrentProject(project);
+      }
 
-    setProjects((prev) => [...prev, project]);
-    setCurrentProject(project);
+      if (nodes) {
+        setCurrentNodes(nodes);
+      }
 
-    setCurrentNodes(
-      flowData.nodes.map((n: any, i: number) => ({
-        id: `node-gen-${Date.now()}-${i}`,
-        projectId: project.id,
-        componentId: `comp-gen-${i}`,
-        positionX: n.positionX,
-        positionY: n.positionY,
-      })),
-    );
-    setCurrentEdges(
-      flowData.edges.map((e: any, i: number) => ({
-        id: `edge-gen-${Date.now()}-${i}`,
-        projectId: project.id,
-        sourceId: e.sourceId,
-        targetId: e.targetId,
-        label: e.label,
-        type: e.type,
-        sourceHandle: e.sourceHandle || "bottom",
-        targetHandle: e.targetHandle || "top",
-      })),
-    );
-  }, []);
+      if (edges) {
+        setCurrentEdges(edges);
+      }
+    },
+    [],
+  );
 
   const value = useMemo<FlowStore>(
     () => ({
@@ -83,6 +87,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       setCurrentNodes,
       currentEdges,
       setCurrentEdges,
+      projectComponents,
+      setProjectComponents,
       inventory,
       setInventory,
       projects,
@@ -93,6 +99,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       currentProject,
       currentNodes,
       currentEdges,
+      projectComponents,
       inventory,
       projects,
       loadDynamicFlow,

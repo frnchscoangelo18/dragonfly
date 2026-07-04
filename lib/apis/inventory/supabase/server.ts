@@ -11,9 +11,8 @@ export async function getAllItems(): Promise<ItemModel[]> {
     id: item.id,
     name: item.name,
     partNumber: item.part_number,
-    specs: item.specs,
+    shortDesc: item.shortDesc,
     unitPrice: item.unit_price,
-    qty: item.qty,
     stock: item.stock,
     stockCount: item.stock_count,
     category: item.category,
@@ -38,9 +37,8 @@ export async function getItemById(id: string): Promise<ItemModel | undefined> {
     id: data.id,
     name: data.name,
     partNumber: data.part_number,
-    specs: data.specs,
+    shortDesc: data.shortDesc,
     unitPrice: data.unit_price,
-    qty: data.qty,
     stock: data.stock,
     stockCount: data.stock_count,
     category: data.category,
@@ -57,9 +55,8 @@ export async function createItem(component: ItemModel): Promise<ItemModel> {
         id: component.id,
         name: component.name,
         part_number: component.partNumber,
-        specs: component.specs,
+        shortDesc: component.shortDesc,
         unit_price: component.unitPrice,
-        qty: component.qty,
         stock: component.stock,
         stock_count: component.stockCount,
         category: component.category,
@@ -76,9 +73,8 @@ export async function createItem(component: ItemModel): Promise<ItemModel> {
     id: data.id,
     name: data.name,
     partNumber: data.part_number,
-    specs: data.specs,
+    shortDesc: data.shortDesc,
     unitPrice: data.unit_price,
-    qty: data.qty,
     stock: data.stock,
     stockCount: data.stock_count,
     category: data.category,
@@ -96,10 +92,10 @@ export async function updateItem(
   if ("name" in updatedItem) updatePayload.name = updatedItem.name;
   if ("partNumber" in updatedItem)
     updatePayload.part_number = updatedItem.partNumber;
-  if ("specs" in updatedItem) updatePayload.specs = updatedItem.specs;
+  if ("shortDesc" in updatedItem)
+    updatePayload.shortDesc = updatedItem.shortDesc;
   if ("unitPrice" in updatedItem)
     updatePayload.unit_price = updatedItem.unitPrice;
-  if ("qty" in updatedItem) updatePayload.qty = updatedItem.qty;
   if ("stock" in updatedItem) updatePayload.stock = updatedItem.stock;
   if ("stockCount" in updatedItem)
     updatePayload.stock_count = updatedItem.stockCount;
@@ -121,15 +117,51 @@ export async function updateItem(
     id: data.id,
     name: data.name,
     partNumber: data.part_number,
-    specs: data.specs,
+    shortDesc: data.shortDesc,
     unitPrice: data.unit_price,
-    qty: data.qty,
     stock: data.stock,
     stockCount: data.stock_count,
     category: data.category,
     pins: data.pins,
     details: data.details,
   };
+}
+
+export async function createItemsBatch(
+  components: ItemModel[],
+): Promise<ItemModel[]> {
+  const { data, error } = await supabase
+    .from("inventory")
+    .insert(
+      components.map((c) => ({
+        id: c.id,
+        name: c.name,
+        part_number: c.partNumber,
+        shortDesc: c.shortDesc,
+        unit_price: c.unitPrice,
+        stock: c.stock,
+        stock_count: c.stockCount,
+        category: c.category,
+        pins: c.pins,
+        details: c.details,
+      })),
+    )
+    .select();
+
+  if (error)
+    throw new Error(`Error creating components batch: ${error.message}`);
+  return data.map((d) => ({
+    id: d.id,
+    name: d.name,
+    partNumber: d.part_number,
+    shortDesc: d.shortDesc,
+    unitPrice: d.unit_price,
+    stock: d.stock,
+    stockCount: d.stock_count,
+    category: d.category,
+    pins: d.pins,
+    details: d.details,
+  }));
 }
 
 export async function deleteItem(id: string): Promise<boolean> {

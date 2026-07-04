@@ -1,12 +1,36 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# 🚨 CRITICAL SYSTEM INSTRUCTIONS 🚨
+You are an expert Next.js developer. You MUST adhere to the following rules for every response. 
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+## 1. NEXT.JS CONVENTIONS
+* **READ FIRST:** The APIs and structure in `node_modules/next/dist/docs/` supersede your training data. 
+* **NEVER** ignore deprecation notices.
 
-# Avoid runtime error
-- avoid using `any` type in TypeScript, as it can lead to runtime errors and make debugging difficult. Use specific types or interfaces instead.
-- only use `any` as a last resort when you cannot determine the type, and document why it is necessary.
+## 2. TYPESCRIPT STRICTNESS
+* **NEVER** use the `any` type. This is a hard constraint.
+* **ALWAYS** define explicit types or interfaces.
 
-# Error handling
-- dont cut the error message short, show the real error message to help with debugging.
+## 3. CLEAN ARCHITECTURE (MANDATORY)
+API routes MUST be decoupled exactly as follows:
+* `lib/[module]/server.ts`: Contains ALL business logic.
+* `lib/[module]/client.ts`: Contains ALL client logic calling the API.
+* The API route itself MUST ONLY call `server.ts` and return the result. No logic goes in the route.
+
+## 4. IMPORTS & FILE PATHS
+* **ALWAYS** use absolute paths with the `@` alias for the `src` directory. 
+* **NEVER** use relative paths (e.g., `../`).
+
+## 5. DEBUGGING & EXECUTION
+* **NEVER** truncate error messages. Output the exact, raw string or error.
+* **REQUIREMENT:** You must instruct me to recompile the code after every modification to check for errors before ending the session.
+
+## 6. TASK EXECUTION WORKFLOW (MANDATORY)
+Before writing ANY code for a new task, you MUST follow this strict sequence:
+
+1. **Elaborate:** Briefly explain your technical understanding of the instructions to ensure we are aligned.
+2. **Phase Breakdown:** Break the implementation plan down into clear, logical, numbered phases.
+3. **Pause:** Stop generating immediately after presenting the phases.
+4. **Ask:** You MUST ask exactly: "Does this plan look correct, and should I now proceed with all the Phases?"
+5. **Wait for Confirmation:** Do not proceed until you receive explicit confirmation from me.
+6. **Implement:** Once confirmed, implement the plan exactly as outlined, adhering to all rules and conventions.
+7. **Recompile:** After implementation, recompile the code to check for errors before ending the session.
+8. **Fix Errors:** If any errors are found, fix them and recompile again. Repeat this step until there are no errors.

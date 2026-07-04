@@ -18,13 +18,14 @@ import {
   getProjectComponents,
 } from "@/lib/apis/project/client";
 import { getReportsByProjectId } from "@/lib/apis/project/reportClient";
+import { GeneratedSpecs } from "@/lib/apis/generate/types";
 
 interface BomStore {
   components: ProjectComponentModel[];
   originalComponents: ProjectComponentModel[];
   hasUnsavedChanges: boolean;
   alerts: BomAlert[];
-  specs: any | null;
+  specs: GeneratedSpecs | null;
   pdfReport: Blob | null; // Added
   total: number;
   itemCount: number;
@@ -42,7 +43,7 @@ interface BomStore {
     tag: ProjectTagEnum,
     newComponents: ProjectComponentModel[],
     newAlerts?: BomAlert[],
-    newSpecs?: any,
+    newSpecs?: GeneratedSpecs,
     newPdfReport?: Blob | null, // Added
   ) => void;
   pushToCart: (summary: Omit<ProjectCartSummary, "totalPrice">) => void;
@@ -58,7 +59,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
   >([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [alerts, setAlerts] = useState<BomAlert[]>([]);
-  const [specs, setSpecs] = useState<any | null>(null);
+  const [specs, setSpecs] = useState<GeneratedSpecs | null>(null);
   const [pdfReport, setPdfReport] = useState<Blob | null>(null); // Added
   const [projectInfo, setProjectInfo] = useState<{
     name: string;
@@ -97,7 +98,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
     tag: ProjectTagEnum,
     newComponents: ProjectComponentModel[],
     newAlerts: BomAlert[] = [],
-    newSpecs: any = null,
+    newSpecs: GeneratedSpecs | null = null,
     newPdfReport: Blob | null = null, // Added
   ) => {
     setProjectInfo({ name: projectName, tag });
@@ -186,6 +187,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
       moveToLastCart,
     };
   }, [
+    clearProject,
     components,
     originalComponents,
     hasUnsavedChanges,

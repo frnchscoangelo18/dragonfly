@@ -25,6 +25,18 @@ export async function createItem(component: ItemModel): Promise<ItemModel> {
   return res.json();
 }
 
+export async function createItemsBatch(
+  components: ItemModel[],
+): Promise<ItemModel[]> {
+  const res = await fetch(`${API_BASE}/bulk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(components),
+  });
+  if (!res.ok) throw new Error("Failed to create components batch");
+  return res.json();
+}
+
 export async function updateItem(
   id: string,
   component: Partial<ItemModel>,

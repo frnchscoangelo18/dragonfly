@@ -1,21 +1,27 @@
+import { generateBomLogic } from "@/lib/apis/generate/bomServer";
 import { NextResponse } from "next/server";
-import { generateBomLogic } from "@/lib/apis/generate/server";
 
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const specsContext = formData.get("specsContext") as string;
-    const prompt = formData.get("prompt") as string | null;
     const image = formData.get("image") as File | null;
+    const projectId = formData.get("projectId") as string;
 
     if (!specsContext) {
-      return NextResponse.json({ error: "Missing specsContext" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing specsContext" },
+        { status: 400 },
+      );
     }
 
-    const result = await generateBomLogic(specsContext, image);
+    const result = await generateBomLogic(specsContext, image, projectId);
     return NextResponse.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error("BOM Gen Error:", error);
-    return NextResponse.json({ error: "Failed to generate BOM" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to generate BOM" },
+      { status: 500 },
+    );
   }
 }

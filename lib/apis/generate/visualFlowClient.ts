@@ -1,10 +1,18 @@
-import { generateVisualFlowLogic } from "@/lib/apis/generate/visualFlowServer";
+import { GeneratedFlow } from "@/lib/apis/generate/types";
 
-export async function generateVisualFlow(specsContext: string, prompt: string | null, image: File | null) {
+export async function generateVisualFlow(
+  bomComponentsContext: string,
+  specsContext: string,
+  prompt: string | null,
+  image: File | null,
+  projectId: string,
+): Promise<GeneratedFlow> {
   const formData = new FormData();
+  formData.append("bomComponentsContext", bomComponentsContext);
   formData.append("specsContext", specsContext);
   if (prompt) formData.append("prompt", prompt);
   if (image) formData.append("image", image);
+  formData.append("projectId", projectId);
 
   const response = await fetch("/api/v2/generate/visual-flow", {
     method: "POST",

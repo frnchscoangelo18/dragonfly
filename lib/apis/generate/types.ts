@@ -1,3 +1,12 @@
+import { ItemModel } from "@/lib/apis/inventory/types";
+import { BomAlert } from "@/features/bom/data";
+import {
+  ComponentEdgeType,
+  ComponentNodeType,
+  ProjectComponentModel,
+  ProjectTagEnum,
+} from "../project/types";
+
 export interface GeneratedSpecs {
   specs: Array<{
     componentName: string;
@@ -8,33 +17,35 @@ export interface GeneratedSpecs {
   summary: string;
 }
 
+// export interface GeneratedBOMItem {
+//   id: string;
+//   name: string;
+//   partNumber: string;
+//   unitPrice: number;
+//   stock: StockStatus;
+//   stockCount: number;
+//   category: string;
+//   specs?: string;
+//   pins: string[];
+//   details?: ItemDetails;
+//   storeOptions: Array<{
+//     id: string;
+//     price: number;
+//     inStock: boolean;
+//     isCheapest: boolean;
+//   }>;
+// }
+
 export interface GeneratedBOM {
-  items: Array<{
-    id: string;
-    name: string;
-    partNumber: string;
-    unitPrice: number;
-    stock: "IN_STOCK" | "OUT";
-    storeOptions: Array<{
-      id: string;
-      price: number;
-      inStock: boolean;
-      isCheapest: boolean;
-    }>;
-  }>;
-  alerts: Array<{ id: string; message: string; severity: "info" | "warning" | "error" }>;
-  tag: string;
+  items: ItemModel[];
+  components: ProjectComponentModel[];
+  alerts: BomAlert[];
+  tag: ProjectTagEnum;
 }
 
 export interface GeneratedFlow {
   name: string;
-  tag: "Robotics" | "IoT" | "Power" | "Networking" | "Mechatronics" | "N/A";
-  nodes: Array<{ id: string; positionX: number; positionY: number }>;
-  edges: Array<{
-    id: string;
-    sourceId: string;
-    targetId: string;
-    label: string;
-    type: "power" | "signal" | "logic" | "i2c";
-  }>;
+  tag: ProjectTagEnum;
+  nodes: ComponentNodeType[];
+  edges: ComponentEdgeType[];
 }

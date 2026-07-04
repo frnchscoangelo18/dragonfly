@@ -82,7 +82,92 @@ export async function deleteProject(id: string): Promise<boolean> {
   return true;
 }
 
-// --- Nodes ---
+export async function createNodesBatch(
+  nodes: ProjectNodeModel[],
+): Promise<ProjectNodeModel[]> {
+  const { data, error } = await supabase
+    .from("project_nodes")
+    .insert(
+      nodes.map((node) => ({
+        id: node.id,
+        project_id: node.projectId,
+        component_id: node.componentId,
+        position_x: node.positionX,
+        position_y: node.positionY,
+      })),
+    )
+    .select();
+
+  if (error) throw new Error(`Error creating nodes batch: ${error.message}`);
+  return data.map((d) => ({
+    id: d.id,
+    projectId: d.project_id,
+    componentId: d.component_id,
+    positionX: d.position_x,
+    positionY: d.position_y,
+  }));
+}
+
+export async function createEdgesBatch(
+  edges: ProjectEdgeModel[],
+): Promise<ProjectEdgeModel[]> {
+  const { data, error } = await supabase
+    .from("project_edges")
+    .insert(
+      edges.map((edge) => ({
+        id: edge.id,
+        project_id: edge.projectId,
+        source_id: edge.sourceId,
+        target_id: edge.targetId,
+        source_handle: edge.sourceHandle,
+        target_handle: edge.targetHandle,
+        label: edge.label,
+        type: edge.type,
+      })),
+    )
+    .select();
+
+  if (error) throw new Error(`Error creating edges batch: ${error.message}`);
+  return data.map((d) => ({
+    id: d.id,
+    projectId: d.project_id,
+    sourceId: d.source_id,
+    targetId: d.target_id,
+    sourceHandle: d.source_handle,
+    targetHandle: d.target_handle,
+    label: d.label,
+    type: d.type,
+  }));
+}
+
+export async function createComponentsBatch(
+  components: ProjectComponentModel[],
+): Promise<ProjectComponentModel[]> {
+  const { data, error } = await supabase
+    .from("project_components")
+    .insert(
+      components.map((comp) => ({
+        id: comp.id,
+        project_id: comp.projectId,
+        inventory_id: comp.inventoryId,
+        name: comp.name,
+        part_number: comp.partNumber,
+        shortDesc: comp.shortDesc,
+        unit_price: comp.unitPrice,
+        qty: comp.qty,
+        category: comp.category,
+        pins: comp.pins,
+        details: comp.details,
+      })),
+    )
+    .select("project_id");
+
+  if (error)
+    throw new Error(`Error creating components batch: ${error.message}`);
+
+  // Fetch updated data to include dynamic stock info from JOIN
+  return await getComponentsByProjectId(data[0].project_id);
+}
 
 export async function getNodesByProjectId(
   projectId: string,
@@ -105,13 +190,14 @@ export async function getNodesByProjectId(
 
 export async function createNode(
   node: ProjectNodeModel,
+  projectId: string,
 ): Promise<ProjectNodeModel> {
   const { data, error } = await supabase
     .from("project_nodes")
     .insert([
       {
         id: node.id,
-        project_id: node.projectId,
+        project_id: projectId,
         component_id: node.componentId,
         position_x: node.positionX,
         position_y: node.positionY,
@@ -195,13 +281,14 @@ export async function getEdgesByProjectId(
 
 export async function createEdge(
   edge: ProjectEdgeModel,
+  projectId: string,
 ): Promise<ProjectEdgeModel> {
   const { data, error } = await supabase
     .from("project_edges")
     .insert([
       {
         id: edge.id,
-        project_id: edge.projectId,
+        project_id: projectId,
         source_id: edge.sourceId,
         target_id: edge.targetId,
         source_handle: edge.sourceHandle,
@@ -411,7 +498,7 @@ export async function getComponentsByProjectId(
       inventoryId: item.inventory_id,
       name: item.name,
       partNumber: item.part_number,
-      specs: item.specs,
+      shortDesc: item.shortDesc,
       unitPrice: item.unit_price,
       qty: item.qty,
       stock: inv?.stock || "OUT",
@@ -437,7 +524,7 @@ export async function createComponent(
         inventory_id: component.inventoryId,
         name: component.name,
         part_number: component.partNumber,
-        specs: component.specs,
+        shortDesc: component.shortDesc,
         unit_price: component.unitPrice,
         qty: component.qty,
         category: component.category,
@@ -465,7 +552,7 @@ export async function updateComponent(
     updatePayload.inventory_id = updated.inventoryId;
   if ("name" in updated) updatePayload.name = updated.name;
   if ("partNumber" in updated) updatePayload.part_number = updated.partNumber;
-  if ("specs" in updated) updatePayload.specs = updated.specs;
+  if ("shortDesc" in updated) updatePayload.shortDesc = updated.shortDesc;
   if ("unitPrice" in updated) updatePayload.unit_price = updated.unitPrice;
   if ("qty" in updated) updatePayload.qty = updated.qty;
   if ("category" in updated) updatePayload.category = updated.category;

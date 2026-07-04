@@ -217,12 +217,12 @@ export default function Home() {
                 className={cn(
                   "absolute -top-2 -right-2",
                   "flex p-1 items-center justify-center",
-                  "rounded-full bg-red-500/60 text-white",
+                  "rounded-full bg-red-500/80 text-white",
                   "border border-red-500 shadow-sm",
-                  "hover:cursor-pointer",
+                  "hover:cursor-pointer hover:bg-red-600",
                 )}
               >
-                <X size={12} />
+                <Trash2 size={12} />
               </button>
             </div>
           ))}

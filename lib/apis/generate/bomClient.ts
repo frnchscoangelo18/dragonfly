@@ -1,6 +1,13 @@
-export async function generateBOM(specsContext: string, image: File | null) {
+import { GeneratedBOM } from "@/lib/apis/generate/types";
+
+export async function generateBOM(
+  specsContext: string,
+  image: File | null,
+  projectId: string,
+): Promise<GeneratedBOM> {
   const formData = new FormData();
   formData.append("specsContext", specsContext);
+  formData.append("projectId", projectId);
   if (image) formData.append("image", image);
 
   const response = await fetch("/api/v2/generate/bom", {

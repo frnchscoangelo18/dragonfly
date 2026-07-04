@@ -26,13 +26,14 @@ export enum ProjectTagEnum {
 
 // export type ProjectTagEnum = keyof typeof ProjectTagEnum;
 
-export interface ProjectNode {
+export interface ComponentNodeType {
   id: string;
+  componentId: string;
   positionX: number;
   positionY: number;
 }
 
-export interface ProjectEdge {
+export interface ComponentEdgeType {
   id: string;
   sourceId: string;
   targetId: string;
@@ -47,8 +48,8 @@ export interface ProjectDefinition {
   name: string;
   time: string;
   tag: ProjectTagEnum;
-  nodes: ProjectNode[];
-  edges: ProjectEdge[];
+  nodes: ComponentNodeType[];
+  edges: ComponentEdgeType[];
   substitutes?: Record<string, string[]>;
 }
 
@@ -58,7 +59,7 @@ export interface ProjectCartSummary {
   tag: ProjectTagEnum;
   timestamp: string;
   totalPrice: number;
-  items: (ItemModel & { qtyPrice: number })[];
+  items: (ProjectComponentModel & { qtyPrice: number })[];
 }
 
 export interface ProjectModel {
@@ -68,11 +69,10 @@ export interface ProjectModel {
   tag: ProjectTagEnum;
 }
 
-export interface ProjectNodeModel extends ProjectNode {
+export interface ProjectNodeModel extends ComponentNodeType {
   projectId: string;
-  componentId: string;
 }
-export interface ProjectEdgeModel extends ProjectEdge {
+export interface ProjectEdgeModel extends ComponentEdgeType {
   projectId: string;
 }
 
@@ -93,6 +93,7 @@ export interface ProjectComponentModel extends Omit<ItemModel, "id"> {
   id: string;
   projectId: string;
   inventoryId: string;
+  qty: number;
   createdAt?: string;
   updatedAt?: string;
 }
