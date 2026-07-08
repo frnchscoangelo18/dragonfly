@@ -29,7 +29,7 @@ Before writing ANY code for a new task, you MUST follow this strict sequence:
 1. **Elaborate:** Briefly explain your technical understanding of the instructions to ensure we are aligned.
 2. **Phase Breakdown:** Break the implementation plan down into clear, logical, numbered phases.
 3. **Pause:** Stop generating immediately after presenting the phases.
-4. **Ask:** You MUST ask exactly: "Does this plan look correct, and should I now proceed with all the Phases?"
+4. **Ask:** You MUST ask exactly: "Does this plan look correct, and should I now proceed with the Phases?"
 5. **Wait for Confirmation:** Do not proceed until you receive explicit confirmation from me.
 6. **Implement:** Once confirmed, implement the plan exactly as outlined, adhering to all rules and conventions.
 7. **Recompile:** After implementation, recompile the code to check for errors before ending the session.

@@ -180,6 +180,18 @@ export async function getProjectSubstitutes(
   return res.json();
 }
 
+export async function createProjectSubstitute(
+  substitute: ProjectSubstituteModel,
+): Promise<ProjectSubstituteModel> {
+  const res = await fetch(`${API_BASE}/${substitute.projectId}/substitutes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(substitute),
+  });
+  if (!res.ok) throw new Error("Failed to create project substitute");
+  return res.json();
+}
+
 export async function getProjectReport(
   projectId: string,
 ): Promise<ProjectSpecsReportModel | undefined> {
