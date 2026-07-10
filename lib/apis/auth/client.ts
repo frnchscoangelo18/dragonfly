@@ -73,3 +73,23 @@ export async function updatePassword(password: string) {
   const { error } = await supabase.auth.updateUser({ password });
   if (error) throw new Error(error.message);
 }
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) throw new Error("Not authenticated");
+  if (!currentPassword) throw new Error("Current password is required");
+  if (!newPassword) throw new Error("New password is required");
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+  if (verifyError) {
+    throw new Error("Current password is incorrect");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw new Error(error.message);
+}

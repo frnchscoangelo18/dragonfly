@@ -29,14 +29,26 @@ interface AuthStore {
   user: AuthUser | null;
   profile: UserProfile | null;
   isGuest: boolean;
+  hasPassword: boolean;
   loading: boolean;
   refreshProfile: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthStore | null>(null);
 
+function computeHasPassword(u: {
+  identities?: { provider: string }[] | null;
+  app_metadata?: { providers?: string[] | null };
+} | null): boolean {
+  if (!u) return false;
+  const providers = u.identities?.map((i) => i.provider) ??
+    u.app_metadata?.providers ?? [];
+  return providers.includes("email");
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [hasPassword, setHasPassword] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = data.user;
       if (u) {
         setUser({ id: u.id, email: u.email ?? null });
+        setHasPassword(computeHasPassword(u));
         fetchProfile(u.id);
       }
       setLoading(false);
@@ -66,10 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = session?.user;
       if (u) {
         setUser({ id: u.id, email: u.email ?? null });
+        setHasPassword(computeHasPassword(u));
         fetchProfile(u.id);
       } else {
         setUser(null);
         setProfile(null);
+        setHasPassword(false);
       }
     });
 
@@ -85,8 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchProfile]);
 
   const value = useMemo<AuthStore>(
-    () => ({ user, profile, isGuest: !user, loading, refreshProfile }),
-    [user, profile, loading, refreshProfile],
+    () => ({
+      user,
+      profile,
+      isGuest: !user,
+      hasPassword,
+      loading,
+      refreshProfile,
+    }),
+    [user, profile, hasPassword, loading, refreshProfile],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -20,12 +20,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   updateEmail,
   updateUsername,
-  updatePassword,
+  changePassword,
   signOut,
 } from "@/lib/apis/auth/client";
 import { useAuth } from "@/features/auth/store";
@@ -37,10 +38,11 @@ export function AccountModal({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, hasPassword, refreshProfile } = useAuth();
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -74,14 +76,28 @@ export function AccountModal({
   }
 
   async function handleUpdatePassword() {
-    if (!password) return;
+    if (!currentPassword || !newPassword) return;
     setLoading(true);
     try {
-      await updatePassword(password);
+      await changePassword(currentPassword, newPassword);
       toast.success("Password updated");
-      setPassword("");
+      setCurrentPassword("");
+      setNewPassword("");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update password");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSignOut() {
+    setLoading(true);
+    try {
+      await signOut();
+      toast.success("Signed out");
+      onOpenChange(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to sign out");
     } finally {
       setLoading(false);
     }
@@ -112,8 +128,8 @@ export function AccountModal({
             <DialogDescription>{user?.email}</DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-3.5">
               <Label htmlFor="acc-email">Update email</Label>
               <div className="flex gap-2">
                 <Input
@@ -132,7 +148,7 @@ export function AccountModal({
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-3.5">
               <Label htmlFor="acc-username">Update username</Label>
               <div className="flex gap-2">
                 <Input
@@ -150,26 +166,53 @@ export function AccountModal({
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="acc-password">Change password</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="acc-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-                <Button
-                  onClick={handleUpdatePassword}
-                  disabled={loading || !password}
-                >
-                  Save
-                </Button>
+            {hasPassword ? (
+              <div className="flex flex-col gap-3.5">
+                <Label htmlFor="acc-password">Change password</Label>
+                <div className="flex flex-col gap-2.5">
+                  <Input
+                    id="acc-current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Current password"
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="acc-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New password"
+                    />
+                    <Button
+                      onClick={handleUpdatePassword}
+                      disabled={loading || !currentPassword || !newPassword}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                You sign in with Google or GitHub, so there&apos;s no password to
+                change.
+              </p>
+            )}
 
             <div className="h-px bg-border" />
+
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              disabled={loading}
+              type="button"
+              className="w-full"
+            >
+              <LogOut />
+              Log out
+            </Button>
 
             <Button
               variant="destructive"
@@ -187,8 +230,8 @@ export function AccountModal({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete your account?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account will be disabled and you'll be signed out. Your data
-              is kept for record-keeping, but you won't be able to log in again.
+              Your account will be disabled and you&apos;ll be signed out. Your data
+              is kept for record-keeping, but you won&apos;t be able to log in again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
