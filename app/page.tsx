@@ -61,10 +61,14 @@ export default function Home() {
     removeFile: removeFileFromStore,
     isLoading,
     loadingText,
+    rateLimitStatus,
     generate,
   } = useInspire();
 
   const [showTip, setShowTip] = useState(false);
+  const [tipMessage, setTipMessage] = useState(
+    "Please enter a description to generate a BOM.",
+  );
   const [projects, setProjects] = useState<ProjectModel[]>([]);
   const [previewImage, setPreviewImage] = useState<{
     file: File;
@@ -90,6 +94,7 @@ export default function Home() {
 
   const handleGenerate = async () => {
     if (prompt.trim() === "" && selectedFiles.length === 0) {
+      setTipMessage("Please enter a description to generate a BOM.");
       setShowTip(true);
       setTimeout(() => setShowTip(false), 3000);
       return;
@@ -97,10 +102,15 @@ export default function Home() {
 
     try {
       await generate(router, loadDynamicProject, loadDynamicFlow);
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e);
+      const message =
+        e instanceof Error
+          ? e.message
+          : "Something went wrong. Please try again.";
+      setTipMessage(message);
       setShowTip(true);
-      setTimeout(() => setShowTip(false), 3000);
+      setTimeout(() => setShowTip(false), 5000);
     }
   };
 
@@ -146,9 +156,6 @@ export default function Home() {
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">
             {"Let's build something"}
           </h1>
-        </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface ring-1 ring-white/5">
-          <span className="text-sm font-medium text-primary">AK</span>
         </div>
       </header>
 
@@ -292,24 +299,45 @@ export default function Home() {
       </section>
 
       {/* Generate */}
-      <motion.button
-        whileTap={{ scale: 0.97 }}
-        onClick={handleGenerate}
-        disabled={isLoading}
-        className="glow-primary mt-2 flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 font-semibold text-primary-foreground disabled:opacity-70"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 size={18} className="animate-spin" />
-            {loadingText}
-          </>
-        ) : (
-          <>
-            <Sparkles size={18} />
-            Generate Project
-          </>
+      <div className="flex flex-col gap-2">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={handleGenerate}
+          disabled={isLoading || (rateLimitStatus?.remaining !== undefined && rateLimitStatus.remaining <= 0)}
+          className="glow-primary mt-2 flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-4 font-semibold text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              {loadingText}
+            </>
+          ) : (
+            <>
+              <Sparkles size={18} />
+              Generate Project
+            </>
+          )}
+        </motion.button>
+
+        {/* Rate limit status */}
+        {rateLimitStatus && (
+          <p className="text-center text-xs text-muted-foreground">
+            {rateLimitStatus.remaining > 0 ? (
+              <>
+                {rateLimitStatus.remaining} of {rateLimitStatus.limit} free
+                generations left today
+              </>
+            ) : (
+              <span className="text-warning">
+                Daily limit reached.{" "}
+                {rateLimitStatus.isGuest
+                  ? "Sign up for more generations."
+                  : "Try again tomorrow."}
+              </span>
+            )}
+          </p>
         )}
-      </motion.button>
+      </div>
 
       {showTip && (
         <motion.p
@@ -317,7 +345,7 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center text-xs text-warning mt-2"
         >
-          Please enter a description to generate a BOM.
+          {tipMessage}
         </motion.p>
       )}
 

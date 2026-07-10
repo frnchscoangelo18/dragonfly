@@ -5,6 +5,7 @@ import {
   SetStateAction,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -30,6 +31,10 @@ import { BomAlert } from "@/features/bom/data";
 import { syncGeneratedData } from "@/lib/apis/project/syncClient";
 import { getMockData } from "./mockData";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import {
+  getRateLimitStatus,
+  RateLimitStatus,
+} from "@/lib/rate-limit/client";
 
 const USE_MOCK_DATA = false; // Toggle here
 
@@ -46,6 +51,8 @@ interface InspireStore {
   removeFile: (index: number) => void;
   isLoading: boolean;
   loadingText: string;
+  rateLimitStatus: RateLimitStatus | null;
+  fetchRateLimitStatus: () => Promise<void>;
   generate: (
     router: AppRouterInstance,
     loadDynamicProject: (
@@ -73,6 +80,23 @@ export function InspireProvider({ children }: { children: ReactNode }) {
   const [selectedFiles, setSelectedFilesState] = useState<SelectedFile[]>([]);
   const [isLoading, setIsLoadingState] = useState(false);
   const [loadingText, setLoadingTextState] = useState("Generating...");
+  const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(
+    null,
+  );
+
+  const fetchRateLimitStatus = useCallback(async () => {
+    try {
+      const status = await getRateLimitStatus();
+      setRateLimitStatus(status);
+    } catch (e) {
+      console.error("Failed to fetch rate limit status:", e);
+    }
+  }, []);
+
+  // Fetch rate limit status on mount
+  useEffect(() => {
+    fetchRateLimitStatus();
+  }, [fetchRateLimitStatus]);
 
   const addFile = useCallback((file: File) => {
     const preview = URL.createObjectURL(file);
@@ -115,6 +139,17 @@ export function InspireProvider({ children }: { children: ReactNode }) {
     ) => {
       if (prompt.trim() === "" && selectedFiles.length === 0) {
         throw new Error("Prompt and files are empty");
+      }
+
+      // Pre-check rate limit
+      const currentStatus = await getRateLimitStatus();
+      setRateLimitStatus(currentStatus);
+      if (currentStatus.remaining <= 0) {
+        throw new Error(
+          currentStatus.isGuest
+            ? `You've used all ${currentStatus.limit} free generations today. Sign up for more.`
+            : `You've used all ${currentStatus.limit} generations today. Try again tomorrow.`,
+        );
       }
 
       setIsLoadingState(true);
@@ -228,6 +263,8 @@ export function InspireProvider({ children }: { children: ReactNode }) {
       removeFile,
       isLoading,
       loadingText,
+      rateLimitStatus,
+      fetchRateLimitStatus,
       setLoadingState,
       generate,
     }),
@@ -236,9 +273,11 @@ export function InspireProvider({ children }: { children: ReactNode }) {
       selectedFiles,
       isLoading,
       loadingText,
+      rateLimitStatus,
       addFile,
       removeFile,
       setLoadingState,
+      fetchRateLimitStatus,
       generate,
     ],
   );
