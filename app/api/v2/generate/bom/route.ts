@@ -2,7 +2,8 @@ import { generateBomLogic } from "@/lib/apis/generate/bomServer";
 import { ProviderType } from "@/lib/ai/types";
 import { NextResponse } from "next/server";
 import { getServerUser } from "@/lib/supabase/server";
-import { getUserApiKeys } from "@/lib/settings/server";
+import { resolveProviderAccess } from "@/lib/settings/server";
+import { generationErrorResponse } from "@/lib/apis/generate/serverError";
 
 export async function POST(req: Request) {
   try {
@@ -23,9 +24,13 @@ export async function POST(req: Request) {
     const resolvedProvider =
       (providerType as ProviderType) || ProviderType.GEMINI;
     const user = await getServerUser();
-    const userApiKey = user
-      ? (await getUserApiKeys(user.id))[resolvedProvider]
-      : undefined;
+    const access = await resolveProviderAccess(user, resolvedProvider);
+    if (!access.available) {
+      return NextResponse.json(
+        { error: "PROVIDER_UNAVAILABLE", provider: resolvedProvider },
+        { status: 400 },
+      );
+    }
 
     const result = await generateBomLogic(
       specsContext,
@@ -34,14 +39,11 @@ export async function POST(req: Request) {
       undefined,
       resolvedProvider,
       model ?? undefined,
-      userApiKey,
+      access.userApiKey,
     );
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
     console.error("BOM Gen Error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to generate BOM" },
-      { status: 500 },
-    );
+    return generationErrorResponse(error);
   }
 }

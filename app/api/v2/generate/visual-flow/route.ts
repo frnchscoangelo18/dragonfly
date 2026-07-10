@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateVisualFlowLogic } from "@/lib/apis/generate/visualFlowServer";
 import { ProviderType } from "@/lib/ai/types";
+import { getServerUser } from "@/lib/supabase/server";
+import { resolveProviderAccess } from "@/lib/settings/server";
+import { generationErrorResponse } from "@/lib/apis/generate/serverError";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,18 +23,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const resolvedProvider =
+      (providerType as ProviderType) || ProviderType.GEMINI;
+    const user = await getServerUser();
+    const access = await resolveProviderAccess(user, resolvedProvider);
+    if (!access.available) {
+      return NextResponse.json(
+        { error: "PROVIDER_UNAVAILABLE", provider: resolvedProvider },
+        { status: 400 },
+      );
+    }
+
     const result = await generateVisualFlowLogic(
       bomComponentsContext,
       specsContext,
       prompt,
       image,
       projectId,
-      (providerType as ProviderType) || ProviderType.GEMINI,
+      resolvedProvider,
       model ?? undefined,
+      access.userApiKey,
     );
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
     console.error("Visual Flow Generation Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return generationErrorResponse(error);
   }
 }
