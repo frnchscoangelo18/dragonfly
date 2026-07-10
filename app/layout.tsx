@@ -9,6 +9,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { InspireProvider } from "@/features/inspire/store";
 import { FlowProvider } from "@/features/visual-flow/store";
 import { CartProvider } from "@/features/cart/store";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/features/auth/store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,21 +35,31 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <BomProvider>
-          <InspireProvider>
-            <FlowProvider>
-              <CartProvider>
-                <SheetProvider>
-                  <MobileShell>{children}</MobileShell>
-                  <Toaster position="top-center" theme="dark" />
-                </SheetProvider>
-              </CartProvider>
-            </FlowProvider>
-          </InspireProvider>
-        </BomProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <BomProvider>
+              <InspireProvider>
+                <FlowProvider>
+                  <CartProvider>
+                    <SheetProvider>
+                      <MobileShell>{children}</MobileShell>
+                      <Toaster position="top-center" theme="dark" />
+                    </SheetProvider>
+                  </CartProvider>
+                </FlowProvider>
+              </InspireProvider>
+            </BomProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
