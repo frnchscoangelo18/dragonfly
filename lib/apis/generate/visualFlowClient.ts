@@ -1,4 +1,5 @@
 import { GeneratedFlow } from "@/lib/apis/generate/types";
+import { getOrCreateDeviceId } from "@/lib/device";
 
 export async function generateVisualFlow(
   bomComponentsContext: string,
@@ -16,6 +17,7 @@ export async function generateVisualFlow(
 
   const response = await fetch("/api/v2/generate/visual-flow", {
     method: "POST",
+    headers: { "x-device-id": getOrCreateDeviceId() },
     body: formData,
   });
 

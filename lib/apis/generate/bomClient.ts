@@ -1,4 +1,5 @@
 import { GeneratedBOM } from "@/lib/apis/generate/types";
+import { getOrCreateDeviceId } from "@/lib/device";
 
 export async function generateBOM(
   specsContext: string,
@@ -12,6 +13,7 @@ export async function generateBOM(
 
   const response = await fetch("/api/v2/generate/bom", {
     method: "POST",
+    headers: { "x-device-id": getOrCreateDeviceId() },
     body: formData,
   });
 

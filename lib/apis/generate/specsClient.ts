@@ -1,4 +1,5 @@
 import { GeneratedSpecs } from "@/lib/apis/generate/types";
+import { getOrCreateDeviceId } from "@/lib/device";
 
 export async function generateSpecs(prompt: string | null, image: File | null): Promise<GeneratedSpecs> {
   const formData = new FormData();
@@ -7,6 +8,7 @@ export async function generateSpecs(prompt: string | null, image: File | null): 
 
   const response = await fetch("/api/v2/generate/specs", {
     method: "POST",
+    headers: { "x-device-id": getOrCreateDeviceId() },
     body: formData,
   });
 
