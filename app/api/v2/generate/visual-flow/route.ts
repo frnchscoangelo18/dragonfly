@@ -11,6 +11,7 @@ export async function POST(req: NextRequest) {
     const image = formData.get("image") as File | null;
     const projectId = formData.get("projectId") as string;
     const providerType = formData.get("providerType") as "gemini" | "openai" | "openrouter" | "chatgpt" | null;
+    const model = formData.get("model") as string | null;
 
     if (!bomComponentsContext && !specsContext) {
       return NextResponse.json(
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
       image,
       projectId,
       (providerType as ProviderType) || ProviderType.GEMINI,
+      model ?? undefined,
     );
     return NextResponse.json(result);
   } catch (error: any) {

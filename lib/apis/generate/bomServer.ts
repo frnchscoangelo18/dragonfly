@@ -33,6 +33,8 @@ export async function generateBomLogic(
   projectId: string,
   generationTimestamp?: string,
   providerType: ProviderType = ProviderType.GEMINI,
+  model?: string,
+  userApiKey?: string,
 ): Promise<GeneratedBOM> {
   const generationSuffix = normalizeGenerationTimestamp(generationTimestamp);
 
@@ -54,11 +56,14 @@ export async function generateBomLogic(
     });
   }
 
-  const apiKey = providerConfig.getNextKey(providerType);
+  const apiKey =
+    userApiKey && userApiKey.trim()
+      ? userApiKey
+      : providerConfig.getNextKey(providerType);
   const provider = createProvider(providerType, apiKey);
 
   const config: AIConfig = {
-    model: "gemini-2.5-flash-lite",
+    model: model ?? "gemini-2.5-flash-lite",
     systemInstruction: `You are an expert Electronics Engineer and System Architect. Your task is to generate a professional Bill of Materials (BOM) based on a provided technical specifications analysis and an optional schematic image.
 
       CRITICAL INSTRUCTIONS:

@@ -11,6 +11,7 @@ import { FlowProvider } from "@/features/visual-flow/store";
 import { CartProvider } from "@/features/cart/store";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/features/auth/store";
+import { SettingsProvider } from "@/features/settings/store";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,18 +47,20 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <BomProvider>
-              <InspireProvider>
-                <FlowProvider>
-                  <CartProvider>
-                    <SheetProvider>
-                      <MobileShell>{children}</MobileShell>
-                      <Toaster position="top-center" theme="dark" />
-                    </SheetProvider>
-                  </CartProvider>
-                </FlowProvider>
-              </InspireProvider>
-            </BomProvider>
+            <SettingsProvider>
+              <BomProvider>
+                <InspireProvider>
+                  <FlowProvider>
+                    <CartProvider>
+                      <SheetProvider>
+                        <MobileShell>{children}</MobileShell>
+                        <Toaster position="top-center" theme="dark" />
+                      </SheetProvider>
+                    </CartProvider>
+                  </FlowProvider>
+                </InspireProvider>
+              </BomProvider>
+            </SettingsProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

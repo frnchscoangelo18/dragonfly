@@ -35,6 +35,7 @@ import {
   getRateLimitStatus,
   RateLimitStatus,
 } from "@/lib/rate-limit/client";
+import { useSettings } from "@/features/settings/store";
 
 const USE_MOCK_DATA = false; // Toggle here
 
@@ -83,6 +84,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(
     null,
   );
+  const { defaultProvider, defaultModel } = useSettings();
 
   const fetchRateLimitStatus = useCallback(async () => {
     try {
@@ -95,6 +97,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
 
   // Fetch rate limit status on mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRateLimitStatus();
   }, [fetchRateLimitStatus]);
 
@@ -178,7 +181,12 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           flowResult = mock.flowResult;
         } else {
           const specsRaw = await withRetry(async () => {
-            return await generateSpecs(sanitizedPrompt, imageFile);
+            return await generateSpecs(
+              sanitizedPrompt,
+              imageFile,
+              defaultProvider,
+              defaultModel,
+            );
           });
           specsData = specsRaw;
           const specsContext = JSON.stringify(specsData);
@@ -187,7 +195,13 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           // 2. BOM
           setLoadingTextState("Generating BOM...");
           bomResult = await withRetry(async () => {
-            return await generateBOM(specsContext, imageFile, projectId);
+            return await generateBOM(
+              specsContext,
+              imageFile,
+              projectId,
+              defaultProvider,
+              defaultModel,
+            );
           });
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -200,6 +214,8 @@ export function InspireProvider({ children }: { children: ReactNode }) {
               sanitizedPrompt,
               imageFile,
               projectId,
+              defaultProvider,
+              defaultModel,
             );
           });
         }
@@ -251,7 +267,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
         setLoadingTextState("Generating...");
       }
     },
-    [prompt, selectedFiles],
+    [prompt, selectedFiles, defaultProvider, defaultModel],
   );
 
   const value = useMemo<InspireStore>(

@@ -33,6 +33,8 @@ export async function generateVisualFlowLogic(
   image: File | null,
   projectId: string,
   providerType: ProviderType = ProviderType.GEMINI,
+  model?: string,
+  userApiKey?: string,
 ): Promise<GeneratedFlow> {
   const contents: AIMessage[] = [];
   if (image) {
@@ -66,11 +68,14 @@ export async function generateVisualFlowLogic(
     `,
   });
 
-  const apiKey = providerConfig.getNextKey(providerType);
+  const apiKey =
+    userApiKey && userApiKey.trim()
+      ? userApiKey
+      : providerConfig.getNextKey(providerType);
   const provider = createProvider(providerType, apiKey);
 
   const config: AIConfig = {
-    model: "gemini-2.5-flash-lite",
+    model: model ?? "gemini-2.5-flash-lite",
     systemInstruction: `You are an expert System Architect. Your task is to generate a visual BLOCK DIAGRAM showing the signal and power flow of a system based on the provided Bill of Materials.
 
     CRITICAL INSTRUCTIONS:

@@ -26,6 +26,17 @@ export async function middleware(request: NextRequest) {
   // Get device ID from header (for guests)
   const deviceId = request.headers.get("x-device-id");
 
+  // Users who supplied their own API keys are not subject to the app limit.
+  let bypassLimit = false;
+  if (user) {
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("encrypted_api_keys")
+      .eq("id", user.id)
+      .maybeSingle();
+    bypassLimit = !!profileData?.encrypted_api_keys;
+  }
+
   // Build identifier
   const identifier = buildIdentifier(user?.id ?? null, deviceId);
 
@@ -35,8 +46,10 @@ export async function middleware(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  // Consume rate limit
-  const result = await consumeRateLimit(supabase, identifier, ip);
+  // Consume rate limit (skip for users with their own API keys)
+  const result = bypassLimit
+    ? { allowed: true, remaining: Infinity, limit: 0, count: 0 }
+    : await consumeRateLimit(supabase, identifier, ip);
 
   // Add rate limit info to response headers for downstream logging
   response.headers.set("x-rate-limit-remaining", String(result.remaining));

@@ -30,6 +30,8 @@ export async function generateSpecsLogic(
   prompt: string | null,
   image: File | null,
   providerType: ProviderType = ProviderType.GEMINI,
+  model?: string,
+  userApiKey?: string,
 ): Promise<GeneratedSpecs> {
   const contents: AIMessage[] = [];
   if (image) {
@@ -47,11 +49,14 @@ export async function generateSpecsLogic(
     });
   }
 
-  const apiKey = providerConfig.getNextKey(providerType);
+  const apiKey =
+    userApiKey && userApiKey.trim()
+      ? userApiKey
+      : providerConfig.getNextKey(providerType);
   const provider = createProvider(providerType, apiKey);
 
   const config: AIConfig = {
-    model: "gemini-2.5-flash-lite",
+    model: model ?? "gemini-2.5-flash-lite",
     systemInstruction: `
       You are an expert Electronics Engineer. Analyze the schematic/description.
       For every component, perform the calculation.
