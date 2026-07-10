@@ -1,13 +1,13 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 
 const GUEST_DAILY_LIMIT = 3;
-const AUTH_DAILY_LIMIT = 10;
+const AUTH_DAILY_LIMIT = 5;
 
 export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   limit: number;
-  count: number;
+  used: number;
 }
 
 /**
@@ -43,7 +43,7 @@ export async function checkRateLimit(
 
   const { data, error } = await supabase
     .from("rate_limits")
-    .select("count")
+    .select("used")
     .eq("identifier", identifier)
     .eq("date", today)
     .maybeSingle();
@@ -51,22 +51,22 @@ export async function checkRateLimit(
   if (error) {
     console.error("Rate limit check error:", error);
     // Fail open — allow the request if we can't check
-    return { allowed: true, remaining: limit, limit, count: 0 };
+    return { allowed: true, remaining: limit, limit, used: 0 };
   }
 
-  const count = data?.count ?? 0;
-  const remaining = Math.max(0, limit - count);
+  const usedCount = data?.used ?? 0;
+  const remaining = Math.max(0, limit - usedCount);
 
   return {
-    allowed: count < limit,
+    allowed: usedCount < limit,
     remaining,
     limit,
-    count,
+    used: usedCount,
   };
 }
 
 /**
- * Consume one generation — atomically increment the count.
+ * Consume one generation — atomically increment the used count.
  * Returns the updated rate limit info.
  */
 export async function consumeRateLimit(
@@ -89,18 +89,18 @@ export async function consumeRateLimit(
   if (error) {
     console.error("Rate limit consume error:", error);
     // Fail open — allow the request if we can't track
-    return { allowed: true, remaining: limit, limit, count: 0 };
+    return { allowed: true, remaining: limit, limit, used: 0 };
   }
 
   const row = data?.[0];
-  const count = row?.count ?? 0;
+  const usedCount = row?.used ?? 0;
   const limited = row?.limited ?? false;
-  const remaining = Math.max(0, limit - count);
+  const remaining = Math.max(0, limit - usedCount);
 
   return {
     allowed: !limited,
     remaining,
     limit,
-    count,
+    used: usedCount,
   };
 }

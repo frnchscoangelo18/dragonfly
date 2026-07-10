@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { buildIdentifier, checkRateLimit } from "@/lib/rate-limit/server";
+import { isUsingOwnKeys } from "@/lib/settings/server";
 
 export async function GET(request: Request) {
   try {
@@ -19,6 +20,9 @@ export async function GET(request: Request) {
 
     const result = await checkRateLimit(supabase, identifier);
 
+    // Users with their own API keys are not subject to the app limit.
+    const unlimited = user ? await isUsingOwnKeys(user.id) : false;
+
     // Calculate when the limit resets (midnight UTC)
     const now = new Date();
     const tomorrow = new Date(
@@ -29,9 +33,10 @@ export async function GET(request: Request) {
     return NextResponse.json({
       limit: result.limit,
       remaining: result.remaining,
-      count: result.count,
+      used: result.used,
       resetsAt,
       isGuest: !user,
+      unlimited,
     });
   } catch (error) {
     console.error("Rate limit status error:", error);
