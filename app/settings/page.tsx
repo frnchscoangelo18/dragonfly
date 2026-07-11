@@ -57,14 +57,26 @@ function Card({
   description,
   headerRight,
   children,
+  id,
+  highlight,
 }: {
   title: string;
   description?: string;
   headerRight?: React.ReactNode;
   children: React.ReactNode;
+  id?: string;
+  highlight?: boolean;
 }) {
   return (
-    <section className="rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5">
+    <section
+      id={id}
+      className={cn(
+        "rounded-2xl bg-surface/60 p-4 ring-1",
+        highlight
+          ? "border border-primary ring-primary/40"
+          : "ring-white/5",
+      )}
+    >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">{title}</h3>
@@ -109,6 +121,7 @@ export default function SettingsPage() {
   > | null>(null);
   const warnedProviderRef = useRef<ProviderType | null>(null);
   const guestTipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [highlightSection, setHighlightSection] = useState<string | null>(null);
 
   const [localProvider, setLocalProvider] = useState<ProviderType>(
     defaultProvider,
@@ -164,11 +177,28 @@ export default function SettingsPage() {
       .then(setAppAvailable)
       .catch(() => setAppAvailable(null));
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (params.get("section") === "keys") setKeysOpen(true);
+      const section = new URLSearchParams(window.location.search).get("section");
+      if (section) {
+        if (section === "keys") {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setKeysOpen(true);
+        }
+        setHighlightSection(`section-${section}`);
+        setTimeout(() => setHighlightSection(null), 4000);
+      }
     }
   }, []);
+
+  // Scroll + highlight the targeted section when arriving via ?section=<id>.
+  useEffect(() => {
+    if (!highlightSection) return;
+    const el = document.getElementById(highlightSection);
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [highlightSection]);
 
   // Keep the local draft in sync when the persisted store value changes
   // (e.g. when the provider/model is loaded from Supabase on mount).
@@ -332,6 +362,8 @@ export default function SettingsPage() {
       <PageHeader trail={[{ label: "Settings" }]} />
 
       <Card
+        id="section-preferences"
+        highlight={highlightSection === "section-preferences"}
         title="Preferences"
         description="App-wide appearance and alerts."
         headerRight={
@@ -368,6 +400,8 @@ export default function SettingsPage() {
       </Card>
 
       <Card
+        id="section-provider"
+        highlight={highlightSection === "section-provider"}
         title="AI Provider & Model"
         description="Choose the default provider used for generation."
         headerRight={
@@ -437,6 +471,8 @@ export default function SettingsPage() {
       </Card>
 
       <Card
+        id="section-usage"
+        highlight={highlightSection === "section-usage"}
         title="API Usage"
         description="Your remaining generations for today."
         headerRight={
@@ -482,9 +518,14 @@ export default function SettingsPage() {
           </div>
         )}
         <section
+          id="section-keys"
           className={cn(
             "rounded-2xl bg-surface/60 p-4 ring-1",
-            isGuest ? "border border-warning ring-warning/30" : "ring-white/5",
+            highlightSection === "section-keys"
+              ? "border border-primary ring-primary/40"
+              : isGuest
+                ? "border border-warning ring-warning/30"
+                : "ring-white/5",
           )}
         >
         <Collapsible open={keysOpen} onOpenChange={setKeysOpen}>
