@@ -70,6 +70,7 @@ export default function Home() {
   const [showTip, setShowTip] = useState(false);
   const [tipMessage, setTipMessage] = useState("");
   const [projects, setProjects] = useState<ProjectModel[]>([]);
+  const [projectsError, setProjectsError] = useState(false);
   const [previewImage, setPreviewImage] = useState<{
     file: File;
     preview: string;
@@ -90,9 +91,13 @@ export default function Home() {
     async function fetchProjects() {
       try {
         const data = await getAllProjects();
-        if (!cancelled) setProjects(data.slice(0, 2));
+        if (!cancelled) {
+          setProjects(data.slice(0, 2));
+          setProjectsError(false);
+        }
       } catch (e) {
         console.error("Failed to fetch projects", e);
+        if (!cancelled) setProjectsError(true);
       }
     }
     fetchProjects();
@@ -389,7 +394,13 @@ export default function Home() {
           </Link>
         </div>
         <div className="flex flex-col gap-2">
-          {projects.map((p) => (
+          {projectsError ? (
+            <div className="rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5 text-sm text-muted-foreground">
+              Couldn&apos;t load projects right now. Try refreshing.
+            </div>
+          ) : projects.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recent projects yet.</p>
+          ) : projects.map((p) => (
             <Link
               key={p.id}
               href={`/bom?generate=dynamic&prompt=${encodeURIComponent(p.name)}`}
