@@ -60,15 +60,14 @@ export default function Home() {
     removeFile: removeFileFromStore,
     isLoading,
     loadingText,
+    isCancelling,
     rateLimitStatus,
     generate,
     cancelGeneration,
   } = useInspire();
 
   const [showTip, setShowTip] = useState(false);
-  const [tipMessage, setTipMessage] = useState(
-    "Please enter a prompt or upload an image to generate a project.",
-  );
+  const [tipMessage, setTipMessage] = useState("");
   const [projects, setProjects] = useState<ProjectModel[]>([]);
   const [previewImage, setPreviewImage] = useState<{
     file: File;
@@ -104,10 +103,15 @@ export default function Home() {
       await generate(router, loadDynamicProject, loadDynamicFlow);
     } catch (e: unknown) {
       console.error(e);
+      // Keep the user-facing quota message; for pipeline/AI failures show a
+      // relevant message rather than leaking the raw or default prompt text.
+      const raw = e instanceof Error ? e.message : "";
       const message =
-        e instanceof Error
-          ? e.message
-          : "Something went wrong. Please try again.";
+        raw.includes("generations today") || raw.includes("used all")
+          ? raw
+          : raw === "Max retries exceeded"
+            ? "Generation failed after multiple attempts. Please try again."
+            : "Something went wrong during generation. Please try again.";
       setTipMessage(message);
       setShowTip(true);
       setTimeout(() => setShowTip(false), 5000);
@@ -339,9 +343,17 @@ export default function Home() {
           <button
             type="button"
             onClick={cancelGeneration}
-            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-destructive px-6 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90"
+            disabled={isCancelling}
+            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-destructive px-6 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-80 disabled:cursor-not-allowed"
           >
-            Cancel
+            {isCancelling ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                Cancelling...
+              </>
+            ) : (
+              "Cancel"
+            )}
           </button>
         )}
       </div>

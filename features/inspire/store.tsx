@@ -57,6 +57,7 @@ interface InspireStore {
   removeFile: (index: number) => void;
   isLoading: boolean;
   loadingText: string;
+  isCancelling: boolean;
   rateLimitStatus: RateLimitStatus | null;
   fetchRateLimitStatus: () => Promise<void>;
   generate: (
@@ -87,6 +88,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
   const [selectedFiles, setSelectedFilesState] = useState<SelectedFile[]>([]);
   const [isLoading, setIsLoadingState] = useState(false);
   const [loadingText, setLoadingTextState] = useState("Generating...");
+  const [isCancelling, setIsCancellingState] = useState(false);
   const [rateLimitStatus, setRateLimitStatus] = useState<RateLimitStatus | null>(
     null,
   );
@@ -134,6 +136,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
 
   const cancelGeneration = useCallback(() => {
     cancelledRef.current = true;
+    setIsCancellingState(true);
     abortRef.current?.abort();
   }, []);
 
@@ -167,7 +170,10 @@ export function InspireProvider({ children }: { children: ReactNode }) {
       // Pre-check rate limit
       const currentStatus = await getRateLimitStatus();
       setRateLimitStatus(currentStatus);
-      if (currentStatus.remaining <= 0) {
+      // Users with their own API keys are unlimited — skip the allowance check.
+      // Use the freshly-fetched status rather than the stale closure value.
+      const isUnlimited = currentStatus.unlimited ?? false;
+      if (!isUnlimited && currentStatus.remaining <= 0) {
         throw new Error(
           currentStatus.isGuest
             ? `You've used all ${currentStatus.limit} free generations today. Sign up for more.`
@@ -284,7 +290,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
         // Count exactly one generation now that the full pipeline has
         // succeeded and synced. Retries on individual AI calls don't count.
         // Users with their own keys are unlimited — don't consume quota.
-        if (!rateLimitStatus?.unlimited && !cancelledRef.current) {
+        if (!isUnlimited && !cancelledRef.current) {
           await consumeRateLimitQuota();
         }
         completed = true;
@@ -333,14 +339,23 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           );
           return;
         }
+        // Whole-pipeline failure: retries exhausted, model fallback failed,
+        // or another unrecoverable AI error. Surface a clear toast — the page
+        // tip is shown separately from the re-thrown error.
+        const pipelineMessage =
+          e instanceof Error && e.message === "Max retries exceeded"
+            ? "Generation failed after multiple attempts. Please try again."
+            : "Something went wrong during generation. Please try again.";
+        toast.error(pipelineMessage);
         throw e;
       } finally {
         // A cancelled generation still counts as one generation. The success
         // path already consumed its quota (completed === true), so skip it here.
-        if (cancelledRef.current && !completed && !rateLimitStatus?.unlimited) {
+        if (cancelledRef.current && !completed && !isUnlimited) {
           await consumeRateLimitQuota();
           fetchRateLimitStatus();
         }
+        setIsCancellingState(false);
         setIsLoadingState(false);
         setLoadingTextState("Generating...");
       }
@@ -357,6 +372,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
       removeFile,
       isLoading,
       loadingText,
+      isCancelling,
       rateLimitStatus,
       fetchRateLimitStatus,
       setLoadingState,

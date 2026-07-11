@@ -238,6 +238,11 @@ export default function SettingsPage() {
     (arr ?? []).some((v) => v && v.trim().length > 0),
   );
 
+  // Enabling "your own keys" without any key entered is an invalid state —
+  // it would save `enabled: true` with no usable provider, leaving the user
+  // with no generation access and no lifted limit.
+  const keysInvalid = useOwnKeys && !hasAnyKey;
+
   const allKeysVisible =
     hasAnyKey &&
     API_KEY_PROVIDERS.every(({ provider }) =>
@@ -280,7 +285,7 @@ export default function SettingsPage() {
     if (isPreferencesDirty) {
       handleSavePreferences();
     }
-    if (isKeysDirty) {
+    if (isKeysDirty && !keysInvalid) {
       setSavingKeys(true);
       try {
         await saveApiKeys(keys, useOwnKeys);
@@ -635,7 +640,7 @@ export default function SettingsPage() {
           <div className="mt-3 flex justify-end">
             <Button
               onClick={handleSaveKeys}
-              disabled={savingKeys || !isKeysDirty}
+              disabled={savingKeys || !isKeysDirty || keysInvalid}
             >
               Save
             </Button>
