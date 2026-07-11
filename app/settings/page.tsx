@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, KeyRound, Plus, X, Eye, EyeOff } from "lucide-react";
+import { Sun, Moon, KeyRound, Plus, X, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { InfoTooltip } from "@/components/InfoTooltip";
 import { Switch } from "@/components/ui/switch";
@@ -100,6 +100,7 @@ export default function SettingsPage() {
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
   const [savingKeys, setSavingKeys] = useState(false);
   const [keysOpen, setKeysOpen] = useState(false);
+  const [showGuestTip, setShowGuestTip] = useState(false);
   const [baselineKeys, setBaselineKeys] = useState<UserApiKeys>({});
   const [baselineUseOwnKeys, setBaselineUseOwnKeys] = useState(false);
   const [appAvailable, setAppAvailable] = useState<Record<
@@ -107,6 +108,7 @@ export default function SettingsPage() {
     boolean
   > | null>(null);
   const warnedProviderRef = useRef<ProviderType | null>(null);
+  const guestTipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [localProvider, setLocalProvider] = useState<ProviderType>(
     defaultProvider,
@@ -146,6 +148,14 @@ export default function SettingsPage() {
           setKeys({});
           setUseOwnKeys(false);
         });
+    } else {
+      // Logged out: clear any previously loaded API keys/ownership so the
+      // usage card no longer shows "Unlimited" for a guest session.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setKeys({});
+      setUseOwnKeys(false);
+      setBaselineKeys({});
+      setBaselineUseOwnKeys(false);
     }
   }, [isGuest]);
 
@@ -464,7 +474,19 @@ export default function SettingsPage() {
         )}
       </Card>
 
-      <section className="rounded-2xl bg-surface/60 p-4 ring-1 ring-white/5">
+      <div className="flex flex-col">
+        {isGuest && (
+          <div className="mb-1 flex items-center gap-1.5 text-warning">
+            <AlertTriangle className="size-3.5" />
+            <span className="text-xs font-medium">Sign in required</span>
+          </div>
+        )}
+        <section
+          className={cn(
+            "rounded-2xl bg-surface/60 p-4 ring-1",
+            isGuest ? "border border-warning ring-warning/30" : "ring-white/5",
+          )}
+        >
         <Collapsible open={keysOpen} onOpenChange={setKeysOpen}>
         <CollapsibleTrigger className="flex w-full items-start justify-between gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md">
           <div className="min-w-0 flex-1">
@@ -483,11 +505,50 @@ export default function SettingsPage() {
         </CollapsibleTrigger>
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Switch
-              checked={useOwnKeys}
-              onCheckedChange={setUseOwnKeys}
-              aria-label="Use your own API keys"
-            />
+            <div className="relative">
+              <div
+                role={isGuest ? "button" : undefined}
+                tabIndex={isGuest ? 0 : -1}
+                onClick={() => {
+                  if (!isGuest) return;
+                  setShowGuestTip(true);
+                  if (guestTipTimer.current) clearTimeout(guestTipTimer.current);
+                  guestTipTimer.current = setTimeout(
+                    () => setShowGuestTip(false),
+                    2600,
+                  );
+                }}
+                onKeyDown={(e) => {
+                  if (!isGuest) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowGuestTip(true);
+                    if (guestTipTimer.current) clearTimeout(guestTipTimer.current);
+                    guestTipTimer.current = setTimeout(
+                      () => setShowGuestTip(false),
+                      2600,
+                    );
+                  }
+                }}
+                className={
+                  isGuest
+                    ? "relative cursor-not-allowed rounded-md p-2 -m-2 outline-none focus-visible:ring-2 focus-visible:ring-warning"
+                    : undefined
+                }
+              >
+                <Switch
+                  checked={useOwnKeys}
+                  onCheckedChange={setUseOwnKeys}
+                  disabled={isGuest}
+                  aria-label="Use your own API keys"
+                />
+              </div>
+              {isGuest && showGuestTip && (
+                <div className="absolute -top-2 left-1/2 z-20 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md bg-warning px-2 py-1 text-[11px] font-semibold text-black shadow-lg">
+                  Only registered users can access this
+                </div>
+              )}
+            </div>
             <span className="text-xs text-muted-foreground">
               {useOwnKeys ? "Your own keys" : "App API keys"}
             </span>
@@ -496,7 +557,12 @@ export default function SettingsPage() {
             <InfoTooltip text="You can only remove the generation limit when you switch to your own API keys." />
           </div>
         </div>
-        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+        <CollapsibleContent
+          className={cn(
+            "overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down",
+            isGuest && "opacity-60",
+          )}
+        >
           {isGuest ? (
             <p className="mt-4 text-xs text-muted-foreground">
               Sign in to add your own API keys and lift the generation limit.
@@ -647,6 +713,7 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 }
