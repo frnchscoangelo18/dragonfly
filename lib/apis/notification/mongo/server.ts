@@ -162,7 +162,10 @@ export async function countUnread(
  */
 export async function getOrCreatePromo(
   recipientId: string,
+  isGuest: boolean,
 ): Promise<Notification | null> {
+  if (isGuest) return null;
+
   await connectToDatabase();
   const existing = await NotificationModel.findOne({
     recipientId,
@@ -175,8 +178,8 @@ export async function getOrCreatePromo(
     if (version !== OWN_KEYS_PROMO_VERSION) {
       const hasKeys = await isUsingOwnKeys(recipientId);
       const now = hasKeys ? new Date() : null;
-      await NotificationModel.updateOne(
-        { _id: existing._id },
+      const updated = await NotificationModel.findOneAndUpdate(
+        { _id: existing._id, "metadata.promoVersion": version },
         {
           $set: {
             actionButtons: OWN_KEYS_PROMO_ACTIONS,
@@ -185,11 +188,13 @@ export async function getOrCreatePromo(
             "metadata.promoVersion": OWN_KEYS_PROMO_VERSION,
           },
         },
-      );
-      const updated = await NotificationModel.findOne({
+        { new: true },
+      ).lean<NotificationDocument>();
+      if (updated) return toPlain(updated);
+      const stale = await NotificationModel.findOne({
         _id: existing._id,
       }).lean<NotificationDocument>();
-      if (updated) return toPlain(updated);
+      if (stale) return toPlain(stale);
     }
     return toPlain(existing);
   }

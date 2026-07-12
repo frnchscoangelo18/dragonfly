@@ -16,9 +16,6 @@ import {
 
 export async function GET(req: Request) {
   const { id, isGuest } = await getRequester();
-  if (isGuest) {
-    return NextResponse.json({ notifications: [], unread: 0 });
-  }
 
   const tabParam = new URL(req.url).searchParams.get("tab");
   const tab: NotificationTab = NOTIFICATION_TABS.includes(
@@ -32,7 +29,7 @@ export async function GET(req: Request) {
 
   const [list, promo, unread] = await Promise.all([
     listNotifications(id, tab),
-    getOrCreatePromo(id),
+    getOrCreatePromo(id, isGuest),
     countUnread(id),
   ]);
 
