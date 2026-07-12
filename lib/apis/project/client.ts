@@ -57,6 +57,23 @@ export async function deleteProject(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete project");
 }
 
+export async function copyProject(
+  id: string,
+  name: string,
+  isPublic = false,
+): Promise<ProjectModel> {
+  const res = await fetch(`${API_BASE}/${id}/copy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, isPublic }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error || "Failed to copy project");
+  }
+  return res.json();
+}
+
 // Project Specific Data
 export async function getProjectNodes(
   projectId: string,
