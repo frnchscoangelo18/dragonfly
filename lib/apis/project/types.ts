@@ -62,6 +62,14 @@ export interface ProjectCartSummary {
   items: (ProjectComponentModel & { qtyPrice: number })[];
 }
 
+export interface ProjectAlert {
+  severity: "warning" | "info";
+  title: string;
+  message: string;
+  componentId?: string;
+  partReference?: string;
+}
+
 export interface ProjectModel {
   id: string;
   name: string;
@@ -69,6 +77,9 @@ export interface ProjectModel {
   tag: ProjectTagEnum;
   userId?: string | null;
   isPublic?: boolean;
+  isOwner?: boolean;
+  authorAlias?: string;
+  alerts?: ProjectAlert[];
 }
 
 export interface ProjectNodeModel extends ComponentNodeType {
