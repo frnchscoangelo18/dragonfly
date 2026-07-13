@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -183,10 +184,13 @@ export function BomProvider({ children }: { children: ReactNode }) {
   // so the next user starts from a clean slate. sessionVersion is the single
   // signal driven by AuthProvider.
   const sessionVersion = useSessionVersion();
+  const prevVersion = useRef(0);
   useEffect(() => {
-    if (sessionVersion === 0) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    clearProject();
+    if (prevVersion.current !== 0 && prevVersion.current !== sessionVersion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      clearProject();
+    }
+    prevVersion.current = sessionVersion;
   }, [sessionVersion, clearProject]);
 
   const pushToCart = useCallback(
@@ -266,7 +270,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
       },
       clearProject: clearProject,
       loadProject: async (name) => await loadProject(name),
-      loadProjectById: async (id) => await loadProjectById(id),
+      loadProjectById,
       loadDynamicProject,
       pushToCart,
       moveToLastCart,
