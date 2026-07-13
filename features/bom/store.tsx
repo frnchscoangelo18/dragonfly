@@ -39,7 +39,7 @@ interface BomStore {
     tag: ProjectTagEnum;
     isPublic?: boolean;
     isOwner?: boolean;
-    authorAlias?: string;
+    author?: { username: string; email?: string; visible: boolean };
   } | null;
   canEdit: boolean;
   pushedHistory: ProjectCartSummary[];
@@ -81,7 +81,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
     tag: ProjectTagEnum;
     isPublic?: boolean;
     isOwner?: boolean;
-    authorAlias?: string;
+    author?: { username: string; email?: string; visible: boolean };
   } | null>(null);
   const [pushedHistory, setPushedHistory] = useState<ProjectCartSummary[]>([]);
 
@@ -96,7 +96,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
       tag: project.tag,
       isPublic: project.isPublic,
       isOwner: project.isOwner,
-      authorAlias: project.authorAlias,
+      author: project.author,
     });
 
     const components = await getProjectComponents(project.id);
@@ -128,7 +128,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
       tag: project.tag,
       isPublic: project.isPublic,
       isOwner: project.isOwner,
-      authorAlias: project.authorAlias,
+      author: project.author,
     });
 
     const components = await getProjectComponents(id);

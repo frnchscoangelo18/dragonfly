@@ -77,7 +77,11 @@ const ProjectSchema = new Schema(
     tag: { type: String, enum: Object.values(ProjectTagEnum), required: true },
     userId: { type: String, required: false, index: true },
     isPublic: { type: Boolean, default: false, index: true },
-    authorAlias: { type: String, default: "" },
+    author: {
+      username: { type: String, default: "" },
+      email: { type: String, default: "" },
+      visible: { type: Boolean, default: false },
+    },
     components: { type: [ProjectComponentSchema], default: [] },
     nodes: { type: [ProjectNodeSchema], default: [] },
     edges: { type: [ProjectEdgeSchema], default: [] },

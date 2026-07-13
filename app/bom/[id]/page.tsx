@@ -249,11 +249,13 @@ export default function BomProjectPage() {
               <span>
                 {components.length} components · {itemCount} units
               </span>
-              {projectInfo.authorAlias ? (
+              {projectInfo.author?.visible && projectInfo.author.username ? (
                 <span className="text-muted-foreground/70">
-                  by {projectInfo.authorAlias}
+                  by {projectInfo.author.username}
                 </span>
-              ) : null}
+              ) : (
+                <span className="text-muted-foreground/70">Unknown</span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -557,7 +559,7 @@ export default function BomProjectPage() {
               name: projectInfo.name,
               isPublic: !!projectInfo.isPublic,
               isOwner: projectInfo.isOwner !== false,
-              authorAlias: projectInfo.authorAlias,
+              author: projectInfo.author,
             }}
             pdfUrl={pdfUrl}
             onProjectsChanged={async () => {

@@ -14,16 +14,28 @@ async function main() {
 
   const projects = mongoose.connection.collection("projects");
 
-  // Existing projects predating the authorAlias field have no such key.
-  // Backfill them with an empty string so the data is consistent; the app
-  // already defaults missing values to "" at read time, so this is non-breaking.
+  // Migrate from flat authorAlias to structured author object.
+  // - non-empty authorAlias → author.username with visible: true
+  // - empty/missing authorAlias → default author (username: "", visible: false)
+  // The authorAlias field is then unset since it is no longer used.
   const result = await projects.updateMany(
-    { authorAlias: { $exists: false } },
-    { $set: { authorAlias: "" } },
+    { author: { $exists: false } },
+    [
+      {
+        $set: {
+          author: {
+            username: "$authorAlias",
+            email: "",
+            visible: { $cond: [{ $ne: ["$authorAlias", ""] }, true, false] },
+          },
+        },
+      },
+      { $unset: "authorAlias" },
+    ],
   );
 
   console.log(
-    `Backfilled ${result.modifiedCount} existing project(s) with authorAlias: "".`,
+    `Migrated ${result.modifiedCount} project(s) from authorAlias → author.`,
   );
 
   await mongoose.disconnect();

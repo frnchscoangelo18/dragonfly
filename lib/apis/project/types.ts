@@ -78,7 +78,11 @@ export interface ProjectModel {
   userId?: string | null;
   isPublic?: boolean;
   isOwner?: boolean;
-  authorAlias?: string;
+  author?: {
+    username: string;
+    email?: string;
+    visible: boolean;
+  };
   alerts?: ProjectAlert[];
 }
 

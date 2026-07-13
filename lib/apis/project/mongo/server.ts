@@ -20,10 +20,27 @@ import {
   ComponentEdgeType,
 } from "../types";
 import { getRequester } from "@/lib/auth/requester";
+import { createServerClient } from "@/lib/supabase/server";
 
 // --- Helpers ---
 
 type ProjectMetaShape = ProjectMeta;
+
+const DEFAULT_AUTHOR = { username: "", email: "", visible: false };
+
+async function getProfileUsername(userId: string): Promise<string> {
+  try {
+    const supabase = await createServerClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+    return (data?.username as string | undefined) ?? "";
+  } catch {
+    return "";
+  }
+}
 
 export class ProjectAccessError extends Error {
   constructor() {
@@ -136,7 +153,7 @@ export async function getAllProjects(): Promise<ProjectMetaShape[]> {
     tag: d.tag,
     isPublic: d.isPublic,
     isOwner: d.userId != null && d.userId === requesterId,
-    authorAlias: d.authorAlias ?? "",
+    author: (d.author as ProjectMetaShape["author"]) ?? DEFAULT_AUTHOR,
     alerts: (d.alerts ?? []).map((a) => ({
       severity: a.severity as "warning" | "info",
       title: a.title,
@@ -161,7 +178,7 @@ export async function getProjectById(
     tag: doc.tag,
     isPublic: doc.isPublic,
     isOwner: doc.userId != null && doc.userId === requesterId,
-    authorAlias: doc.authorAlias ?? "",
+    author: (doc.author as ProjectMetaShape["author"]) ?? DEFAULT_AUTHOR,
     alerts: (doc.alerts ?? []).map((a) => ({
       severity: a.severity as "warning" | "info",
       title: a.title,
@@ -177,6 +194,8 @@ export async function createProject(
 ): Promise<ProjectMetaShape> {
   await connectToDatabase();
   const { id: requesterId } = await getRequester();
+  const username = await getProfileUsername(requesterId);
+  const author = { username, email: "", visible: false };
   await ProjectModel.create({
     _id: project.id,
     name: project.name,
@@ -184,7 +203,7 @@ export async function createProject(
     tag: project.tag,
     userId: requesterId,
     isPublic: false,
-    authorAlias: "",
+    author,
     components: [],
     nodes: [],
     edges: [],
@@ -199,7 +218,7 @@ export async function createProject(
     tag: project.tag,
     isPublic: false,
     isOwner: true,
-    authorAlias: "",
+    author,
     alerts: [],
   };
 }
@@ -220,8 +239,10 @@ export async function copyProject(
   if (!source) throw new ProjectAccessError();
 
   const { id: requesterId } = await getRequester();
+  const username = await getProfileUsername(requesterId);
   const newId = `${requesterId}-${Date.now()}`;
   const time = new Date().toISOString();
+  const author = { username, email: "", visible: false };
 
   await ProjectModel.create({
     _id: newId,
@@ -230,6 +251,7 @@ export async function copyProject(
     tag: source.tag,
     userId: requesterId,
     isPublic,
+    author,
     components: source.components,
     nodes: source.nodes,
     edges: source.edges,
@@ -245,6 +267,7 @@ export async function copyProject(
     tag: source.tag,
     isPublic: false,
     isOwner: true,
+    author,
     alerts: [],
   };
 }
@@ -264,9 +287,12 @@ export async function updateProject(
   if ("name" in updated) set.name = updated.name;
   if ("time" in updated) set.time = updated.time;
   if ("tag" in updated) set.tag = updated.tag;
-  // Visibility + author alias can only be changed by the owner.
+  // Visibility + author fields (except username) can only be changed by the owner.
   if ("isPublic" in updated && isOwner) set.isPublic = updated.isPublic;
-  if ("authorAlias" in updated && isOwner) set.authorAlias = updated.authorAlias;
+  if ("author" in updated && isOwner) {
+    if (updated.author?.email !== undefined) set["author.email"] = updated.author.email;
+    if (updated.author?.visible !== undefined) set["author.visible"] = updated.author.visible;
+  }
 
   const updatedDoc = await ProjectModel.findByIdAndUpdate(id, { $set: set }, { new: true }).lean<ProjectDocument>();
   if (!updatedDoc) return undefined;
@@ -277,7 +303,7 @@ export async function updateProject(
     tag: updatedDoc.tag,
     isPublic: updatedDoc.isPublic,
     isOwner: updatedDoc.userId != null && updatedDoc.userId === requesterId,
-    authorAlias: updatedDoc.authorAlias ?? "",
+    author: (updatedDoc.author as ProjectMetaShape["author"]) ?? DEFAULT_AUTHOR,
   };
 }
 

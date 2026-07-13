@@ -32,7 +32,7 @@ interface ProjectSettingsModalProps {
     name: string;
     isPublic: boolean;
     isOwner: boolean;
-    authorAlias?: string;
+    author?: { username: string; email?: string; visible: boolean };
   };
   pdfUrl: string | null;
   onProjectsChanged: () => Promise<void> | void;
@@ -52,7 +52,8 @@ export function ProjectSettingsModal({
 
   const [name, setName] = useState(project.name);
   const [pendingPublic, setPendingPublic] = useState(project.isPublic);
-  const [alias, setAlias] = useState(project.authorAlias ?? "");
+  const [authorEmail, setAuthorEmail] = useState(project.author?.email ?? "");
+  const [authorVisible, setAuthorVisible] = useState(project.author?.visible ?? false);
   const [editingName, setEditingName] = useState(false);
   const [busy, setBusy] = useState(false);
   const [isCopyOpen, setIsCopyOpen] = useState(false);
@@ -62,15 +63,17 @@ export function ProjectSettingsModal({
     if (open) {
       setName(project.name);
       setPendingPublic(project.isPublic);
-      setAlias(project.authorAlias ?? "");
+      setAuthorEmail(project.author?.email ?? "");
+      setAuthorVisible(project.author?.visible ?? false);
       setEditingName(false);
     }
-  }, [open, project.name, project.isPublic, project.authorAlias]);
+  }, [open, project.name, project.isPublic, project.author]);
 
   const dirty =
     name !== project.name ||
     pendingPublic !== project.isPublic ||
-    alias !== (project.authorAlias ?? "");
+    authorEmail !== (project.author?.email ?? "") ||
+    authorVisible !== (project.author?.visible ?? false);
 
   const handleSave = async () => {
     if (!project.isOwner || !dirty) return;
@@ -79,7 +82,11 @@ export function ProjectSettingsModal({
       await updateProject(project.id, {
         name: name.trim(),
         isPublic: pendingPublic,
-        authorAlias: alias.trim(),
+        author: {
+          email: authorEmail.trim(),
+          visible: authorVisible,
+          username: project.author?.username ?? "",
+        },
       });
       await onProjectsChanged();
       await loadProject(name.trim());
@@ -148,7 +155,7 @@ export function ProjectSettingsModal({
         </DialogHeader>
 
         <div className="flex min-w-0 flex-col gap-5">
-          {/* Visibility + author alias */}
+          {/* Visibility */}
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Visibility
@@ -181,21 +188,76 @@ export function ProjectSettingsModal({
               </div>
             </RadioGroup>
 
-            <div className="mt-3">
-              <Label
-                htmlFor="author-alias"
-                className="mb-1 block text-xs text-muted-foreground"
-              >
-                Author alias
-              </Label>
-              <Input
-                id="author-alias"
-                value={alias}
-                disabled={!project.isOwner}
-                onChange={(e) => setAlias(e.target.value)}
-                placeholder="Display name shown instead of username"
-                className={cn(!project.isOwner && "opacity-50")}
-              />
+          </section>
+
+          {/* Author */}
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Author
+            </h3>
+            {!project.isOwner && (
+              <p className="mb-2 text-[11px] text-muted-foreground">
+                Only the owner can change author settings.
+              </p>
+            )}
+            <div className="flex flex-col gap-3">
+              <div>
+                <Label
+                  htmlFor="author-username"
+                  className="mb-1 block text-xs text-muted-foreground"
+                >
+                  Username
+                </Label>
+                <Input
+                  id="author-username"
+                  value={project.author?.username ?? "Unknown"}
+                  disabled
+                  className="opacity-50"
+                />
+              </div>
+              <div>
+                <Label
+                  htmlFor="author-email"
+                  className="mb-1 block text-xs text-muted-foreground"
+                >
+                  Email (optional)
+                </Label>
+                <Input
+                  id="author-email"
+                  value={authorEmail}
+                  disabled={!project.isOwner}
+                  onChange={(e) => setAuthorEmail(e.target.value)}
+                  placeholder="Contact email"
+                  className={cn(!project.isOwner && "opacity-50")}
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-xs text-muted-foreground">
+                  Author visibility
+                </Label>
+                <RadioGroup
+                  value={authorVisible ? "visible" : "hidden"}
+                  onValueChange={(v) => setAuthorVisible(v === "visible")}
+                  disabled={!project.isOwner}
+                  className={cn(
+                    "flex gap-4",
+                    !project.isOwner && "opacity-50",
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="hidden" id="author-hidden" />
+                    <Label htmlFor="author-hidden" className="cursor-pointer">
+                      Hide author
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="visible" id="author-visible" />
+                    <Label htmlFor="author-visible" className="cursor-pointer">
+                      Show author
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
             </div>
           </section>
 
