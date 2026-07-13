@@ -26,7 +26,17 @@ import { createServerClient } from "@/lib/supabase/server";
 
 type ProjectMetaShape = ProjectMeta;
 
-const DEFAULT_AUTHOR = { username: "", email: "", visible: false };
+const DEFAULT_AUTHOR = { name: "", email: "", visible: false };
+
+function normalizeAuthor(raw: unknown): { name: string; email: string; visible: boolean } {
+  if (!raw || typeof raw !== "object") return DEFAULT_AUTHOR;
+  const a = raw as Record<string, unknown>;
+  return {
+    name: (a.name as string) ?? (a.username as string) ?? "",
+    email: (a.email as string) ?? "",
+    visible: (a.visible as boolean) ?? false,
+  };
+}
 
 async function getProfileUsername(userId: string): Promise<string> {
   try {
@@ -153,7 +163,7 @@ export async function getAllProjects(): Promise<ProjectMetaShape[]> {
     tag: d.tag,
     isPublic: d.isPublic,
     isOwner: d.userId != null && d.userId === requesterId,
-    author: (d.author as ProjectMetaShape["author"]) ?? DEFAULT_AUTHOR,
+    author: normalizeAuthor(d.author),
     alerts: (d.alerts ?? []).map((a) => ({
       severity: a.severity as "warning" | "info",
       title: a.title,
@@ -178,7 +188,7 @@ export async function getProjectById(
     tag: doc.tag,
     isPublic: doc.isPublic,
     isOwner: doc.userId != null && doc.userId === requesterId,
-    author: (doc.author as ProjectMetaShape["author"]) ?? DEFAULT_AUTHOR,
+    author: normalizeAuthor(doc.author),
     alerts: (doc.alerts ?? []).map((a) => ({
       severity: a.severity as "warning" | "info",
       title: a.title,
@@ -195,7 +205,7 @@ export async function createProject(
   await connectToDatabase();
   const { id: requesterId } = await getRequester();
   const username = await getProfileUsername(requesterId);
-  const author = { username, email: "", visible: false };
+  const author = { name: username, email: "", visible: false };
   await ProjectModel.create({
     _id: project.id,
     name: project.name,
@@ -242,7 +252,7 @@ export async function copyProject(
   const username = await getProfileUsername(requesterId);
   const newId = `${requesterId}-${Date.now()}`;
   const time = new Date().toISOString();
-  const author = { username, email: "", visible: false };
+  const author = { name: username, email: "", visible: false };
 
   await ProjectModel.create({
     _id: newId,
@@ -287,9 +297,10 @@ export async function updateProject(
   if ("name" in updated) set.name = updated.name;
   if ("time" in updated) set.time = updated.time;
   if ("tag" in updated) set.tag = updated.tag;
-  // Visibility + author fields (except username) can only be changed by the owner.
+  // Visibility + author fields can only be changed by the owner.
   if ("isPublic" in updated && isOwner) set.isPublic = updated.isPublic;
   if ("author" in updated && isOwner) {
+    if (updated.author?.name !== undefined) set["author.name"] = updated.author.name;
     if (updated.author?.email !== undefined) set["author.email"] = updated.author.email;
     if (updated.author?.visible !== undefined) set["author.visible"] = updated.author.visible;
   }
@@ -303,7 +314,7 @@ export async function updateProject(
     tag: updatedDoc.tag,
     isPublic: updatedDoc.isPublic,
     isOwner: updatedDoc.userId != null && updatedDoc.userId === requesterId,
-    author: (updatedDoc.author as ProjectMetaShape["author"]) ?? DEFAULT_AUTHOR,
+    author: normalizeAuthor(updatedDoc.author),
   };
 }
 

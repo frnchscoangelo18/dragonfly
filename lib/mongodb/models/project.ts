@@ -78,7 +78,7 @@ const ProjectSchema = new Schema(
     userId: { type: String, required: false, index: true },
     isPublic: { type: Boolean, default: false, index: true },
     author: {
-      username: { type: String, default: "" },
+      name: { type: String, default: "" },
       email: { type: String, default: "" },
       visible: { type: Boolean, default: false },
     },

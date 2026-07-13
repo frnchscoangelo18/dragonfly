@@ -249,9 +249,9 @@ export default function BomProjectPage() {
               <span>
                 {components.length} components · {itemCount} units
               </span>
-              {projectInfo.author?.visible && projectInfo.author.username ? (
+              {projectInfo.author?.visible && projectInfo.author.name ? (
                 <span className="text-muted-foreground/70">
-                  by {projectInfo.author.username}
+                  by {projectInfo.author.name}
                 </span>
               ) : (
                 <span className="text-muted-foreground/70">Unknown</span>

@@ -79,7 +79,7 @@ export interface ProjectModel {
   isPublic?: boolean;
   isOwner?: boolean;
   author?: {
-    username: string;
+    name: string;
     email?: string;
     visible: boolean;
   };

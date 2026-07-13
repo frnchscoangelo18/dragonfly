@@ -15,8 +15,8 @@ async function main() {
   const projects = mongoose.connection.collection("projects");
 
   // Migrate from flat authorAlias to structured author object.
-  // - non-empty authorAlias → author.username with visible: true
-  // - empty/missing authorAlias → default author (username: "", visible: false)
+  // - non-empty authorAlias → author.name with visible: true
+  // - empty/missing authorAlias → default author (name: "", visible: false)
   // The authorAlias field is then unset since it is no longer used.
   const result = await projects.updateMany(
     { author: { $exists: false } },
@@ -24,7 +24,7 @@ async function main() {
       {
         $set: {
           author: {
-            username: "$authorAlias",
+            name: "$authorAlias",
             email: "",
             visible: { $cond: [{ $ne: ["$authorAlias", ""] }, true, false] },
           },

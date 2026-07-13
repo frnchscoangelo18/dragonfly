@@ -17,7 +17,7 @@ interface ProjectCardProps {
 }
 
 function CardBody({ project }: { project: ProjectModel }) {
-  const authorVisible = project.author?.visible && project.author.username;
+  const authorVisible = project.author?.visible && project.author.name;
 
   return (
     <>
@@ -35,7 +35,7 @@ function CardBody({ project }: { project: ProjectModel }) {
           <span className="text-[10px] text-muted-foreground">by </span>
           {authorVisible ? (
             <span className="text-[10px] text-foreground">
-              {project.author!.username.toUpperCase()}
+              {project.author!.name.toUpperCase()}
             </span>
           ) : (
             <span className="text-[10px] text-muted-foreground">Unknown</span>

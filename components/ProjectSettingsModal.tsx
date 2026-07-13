@@ -32,7 +32,7 @@ interface ProjectSettingsModalProps {
     name: string;
     isPublic: boolean;
     isOwner: boolean;
-    author?: { username: string; email?: string; visible: boolean };
+    author?: { name: string; email?: string; visible: boolean };
   };
   pdfUrl: string | null;
   onProjectsChanged: () => Promise<void> | void;
@@ -54,6 +54,8 @@ export function ProjectSettingsModal({
   const [pendingPublic, setPendingPublic] = useState(project.isPublic);
   const [authorEmail, setAuthorEmail] = useState(project.author?.email ?? "");
   const [authorVisible, setAuthorVisible] = useState(project.author?.visible ?? false);
+  const [authorName, setAuthorName] = useState(project.author?.name ?? "");
+  const [editingAuthorName, setEditingAuthorName] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [busy, setBusy] = useState(false);
   const [isCopyOpen, setIsCopyOpen] = useState(false);
@@ -65,6 +67,8 @@ export function ProjectSettingsModal({
       setPendingPublic(project.isPublic);
       setAuthorEmail(project.author?.email ?? "");
       setAuthorVisible(project.author?.visible ?? false);
+      setAuthorName(project.author?.name ?? "");
+      setEditingAuthorName(false);
       setEditingName(false);
     }
   }, [open, project.name, project.isPublic, project.author]);
@@ -72,6 +76,7 @@ export function ProjectSettingsModal({
   const dirty =
     name !== project.name ||
     pendingPublic !== project.isPublic ||
+    authorName !== (project.author?.name ?? "") ||
     authorEmail !== (project.author?.email ?? "") ||
     authorVisible !== (project.author?.visible ?? false);
 
@@ -83,9 +88,9 @@ export function ProjectSettingsModal({
         name: name.trim(),
         isPublic: pendingPublic,
         author: {
+          name: authorName.trim(),
           email: authorEmail.trim(),
           visible: authorVisible,
-          username: project.author?.username ?? "",
         },
       });
       await onProjectsChanged();
@@ -202,18 +207,37 @@ export function ProjectSettingsModal({
             )}
             <div className="flex flex-col gap-3">
               <div>
-                <Label
-                  htmlFor="author-username"
-                  className="mb-1 block text-xs text-muted-foreground"
-                >
-                  Username
-                </Label>
-                <Input
-                  id="author-username"
-                  value={project.author?.username ?? "Unknown"}
-                  disabled
-                  className="opacity-50"
-                />
+                <div className="mb-1 flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">
+                    Name
+                  </Label>
+                  {!editingAuthorName && project.isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingAuthorName(true)}
+                      title="Edit author name"
+                      className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                </div>
+                {editingAuthorName ? (
+                  <Input
+                    autoFocus
+                    value={authorName}
+                    onChange={(e) => setAuthorName(e.target.value)}
+                    onBlur={() => setEditingAuthorName(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") setEditingAuthorName(false);
+                    }}
+                    placeholder="Author display name"
+                  />
+                ) : (
+                  <p className="text-sm text-foreground">
+                    {project.author?.name || "Unknown"}
+                  </p>
+                )}
               </div>
               <div>
                 <Label

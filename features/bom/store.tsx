@@ -39,7 +39,7 @@ interface BomStore {
     tag: ProjectTagEnum;
     isPublic?: boolean;
     isOwner?: boolean;
-    author?: { username: string; email?: string; visible: boolean };
+    author?: { name: string; email?: string; visible: boolean };
   } | null;
   canEdit: boolean;
   pushedHistory: ProjectCartSummary[];
@@ -81,7 +81,7 @@ export function BomProvider({ children }: { children: ReactNode }) {
     tag: ProjectTagEnum;
     isPublic?: boolean;
     isOwner?: boolean;
-    author?: { username: string; email?: string; visible: boolean };
+    author?: { name: string; email?: string; visible: boolean };
   } | null>(null);
   const [pushedHistory, setPushedHistory] = useState<ProjectCartSummary[]>([]);
 
