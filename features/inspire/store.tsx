@@ -66,6 +66,7 @@ interface InspireStore {
       projectName: string,
       tag: ProjectTagEnum,
       newComponents: ProjectComponentModel[],
+      projectId?: string,
       newAlerts?: BomAlert[],
       newSpecs?: GeneratedSpecs,
       newPdfReport?: Blob | null,
@@ -152,6 +153,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
         projectName: string,
         tag: ProjectTagEnum,
         newComponents: ProjectComponentModel[],
+        projectId?: string,
         newAlerts?: BomAlert[],
         newSpecs?: GeneratedSpecs,
         newPdfReport?: Blob | null,
@@ -305,6 +307,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           projectName,
           syncResult.projectTag,
           syncResult.projectComponents,
+          syncResult.project.id,
           bomResult.alerts,
           specsData,
           new Blob([pdfBytes], { type: "application/pdf" }),
@@ -317,9 +320,7 @@ export function InspireProvider({ children }: { children: ReactNode }) {
           syncResult.edges,
         );
 
-        router.push(
-          `/bom?generate=dynamic&prompt=${encodeURIComponent(projectName)}`,
-        );
+        router.push(`/bom/${syncResult.project.id}`);
       } catch (e) {
         const isCancel =
           (e instanceof Error && e.message === "Generation cancelled") ||

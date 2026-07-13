@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -28,9 +28,10 @@ import {
   Check,
   RotateCcw,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   ImageIcon,
-  MoreHorizontal,
 } from "lucide-react";
 import {
   getAllProjects,
@@ -51,6 +52,7 @@ import {
 import { toast } from "sonner";
 import { useFlow } from "@/features/visual-flow/store";
 import { useAuth } from "@/features/auth/store";
+import { useSearchParams } from "next/navigation";
 
 const nodeTypes = { custom: CustomNode };
 
@@ -72,27 +74,40 @@ export default function FlowScreen() {
 
   const { user } = useAuth();
   const requesterKey = user?.id ?? "guest";
+  const searchParams = useSearchParams();
 
   const [selected, setSelected] = useState<ComponentNode | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [titleDialogOpen, setTitleDialogOpen] = useState(false);
+  const [titleExpanded, setTitleExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const titleRef = useRef<HTMLSpanElement>(null);
 
   // Fetch initial project and component lists. Re-runs whenever the requester
-  // identity changes (login / logout) so a different user's projects are never
-  // shown. The list is replaced (not merged) to drop any projects the server
-  // no longer returns for this requester.
+  // identity changes (login / logout) or the URL search params change (so a
+  // ?projectId=xxx link from another page selects the correct project).
   useEffect(() => {
     Promise.all([getAllProjects(), getAllItems()])
       .then(([projs, inv]) => {
         setProjects(projs);
         setInventory(inv);
-        if (projs.length > 0 && !currentProject) {
+        if (projs.length === 0) return;
+
+        const projectIdFromUrl = searchParams.get("projectId");
+        if (projectIdFromUrl) {
+          const target = projs.find((p) => p.id === projectIdFromUrl);
+          if (target) {
+            setCurrentProject(target);
+            return;
+          }
+        }
+
+        if (!currentProject) {
           setCurrentProject(projs[0]);
         }
       })
       .catch((err) => console.error("Failed to load initial data:", err));
-  }, [requesterKey, setProjects, setInventory, setCurrentProject]); // Removed currentProject from deps to prevent reset loop
+  }, [requesterKey, setProjects, setInventory, setCurrentProject, searchParams]);
 
   // Fetch nodes, edges and components whenever the active project changes
   useEffect(() => {
@@ -379,6 +394,26 @@ export default function FlowScreen() {
     return nodeChanged || edgeChanged;
   }, [isInitialized, nodes, edges, currentNodes, currentEdges]);
 
+  // Detect if the project title overflows 2 lines
+  useEffect(() => {
+    const el = titleRef.current;
+    if (el) {
+      setIsTruncated(el.scrollHeight > el.clientHeight);
+    }
+  }, [currentProject?.name]);
+
+  const currentIndex = projects.findIndex((p) => p.id === currentProject?.id);
+  const isFirst = currentIndex <= 0;
+  const isLast = currentIndex >= projects.length - 1;
+
+  const goToPrevProject = useCallback(() => {
+    if (!isFirst) setCurrentProject(projects[currentIndex - 1]);
+  }, [isFirst, currentIndex, projects, setCurrentProject]);
+
+  const goToNextProject = useCallback(() => {
+    if (!isLast) setCurrentProject(projects[currentIndex + 1]);
+  }, [isLast, currentIndex, projects, setCurrentProject]);
+
   if (!currentProject) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -392,20 +427,24 @@ export default function FlowScreen() {
       <div className="px-5 pt-2 pb-2">
         <header className="flex flex-col gap-2">
           <PageHeader trail={[{ label: "Flow" }]} />
-          <div className="flex items-center justify-end gap-2">
-            <div className="flex max-w-[170px] min-w-0 items-center gap-1">
-              <span className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-sm font-semibold text-foreground">
-                {currentProject.name}
-              </span>
+          <div className="flex flex-wrap items-baseline gap-x-1">
+            <span
+              ref={titleRef}
+              className={titleExpanded ? "text-sm font-semibold text-muted-foreground" : "line-clamp-2 text-sm font-semibold text-muted-foreground"}
+            >
+              {currentProject.name}
+            </span>
+            {isTruncated && (
               <button
                 type="button"
-                onClick={() => setTitleDialogOpen(true)}
-                aria-label="Show full project name"
-                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-surface text-muted-foreground ring-1 ring-white/10 outline-none transition-colors hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={() => setTitleExpanded((v) => !v)}
+                className="text-xs font-medium text-primary hover:underline whitespace-nowrap"
               >
-                <MoreHorizontal size={16} />
+                {titleExpanded ? "Show less" : "Show more"}
               </button>
-            </div>
+            )}
+          </div>
+          <div className="flex items-center justify-end gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -428,6 +467,24 @@ export default function FlowScreen() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              disabled={isFirst}
+              onClick={goToPrevProject}
+            >
+              <ChevronLeft size={16} />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              disabled={isLast}
+              onClick={goToNextProject}
+            >
+              <ChevronRight size={16} />
+            </Button>
           </div>
         </header>
       </div>
@@ -477,17 +534,6 @@ export default function FlowScreen() {
           </div>
         )}
       </div>
-
-      <Dialog open={titleDialogOpen} onOpenChange={setTitleDialogOpen}>
-        <DialogContent className="bg-surface border-white/10">
-          <DialogHeader>
-            <DialogTitle>Project</DialogTitle>
-          </DialogHeader>
-          <div className="text-sm text-foreground/90 break-words">
-            {currentProject.name}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="bg-surface border-white/10">

@@ -19,6 +19,7 @@ export async function POST(request: Request) {
     if (body && typeof body === "object") {
       delete (body as Record<string, unknown>).userId;
       delete (body as Record<string, unknown>).isPublic;
+      delete (body as Record<string, unknown>).author;
     }
     const project = await createProject(body);
     return NextResponse.json(project, { status: 201 });

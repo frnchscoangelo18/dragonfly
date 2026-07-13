@@ -50,6 +50,7 @@ export async function syncGeneratedData(
     name: projectName,
     time: new Date().toISOString(),
     tag: projectTag,
+    alerts: bomResult.alerts,
   });
 
   // 2. Upload PDF to Storage (only once)

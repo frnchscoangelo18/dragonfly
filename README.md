@@ -1,3 +1,7 @@
+version: 3
+version: 2
+version: 1
+
 <p align="center">
   <img src="public/logo.jpg" alt="Dragonfly Logo" width="250" height="250" />
 </p>

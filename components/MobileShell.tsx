@@ -15,7 +15,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   return (
-    <div className="relative mx-auto flex h-[100dvh] w-full max-w-[440px] flex-col bg-background">
+    <div className="relative mx-auto flex h-[100dvh] w-full max-w-[var(--mobile-shell-width)] flex-col bg-background">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-x-0 -top-32 h-72 bg-[radial-gradient(ellipse_at_center,var(--glow),transparent_70%)] opacity-30" />
       <div className="pointer-events-none absolute -bottom-40 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,var(--color-accent),transparent_70%)] opacity-10" />

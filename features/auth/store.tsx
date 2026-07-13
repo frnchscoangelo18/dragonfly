@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -54,10 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasPassword, setHasPassword] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  // Bumped on every auth change (login / logout / switch account) so that
+  // Bumped on identity changes (login / logout / switch account) so that
   // downstream providers and components can wipe + refetch identity-scoped
   // state. This is the single signal that the "current person" changed.
+  // A ref tracks the previously-known user id so we can distinguish real
+  // sign-ins (null → userId) from session restores (same userId re-emitted
+  // on tab focus). Session restores must NOT bump the version.
   const [sessionVersion, setSessionVersion] = useState(0);
+  const prevUserIdRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
@@ -82,8 +87,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user;
+      const newUserId = u?.id ?? null;
+
+      // Distinguish real sign-ins from session restores (e.g. tab focus
+      // re-emits SIGNED_IN for the same user). Only bump sessionVersion
+      // when the identity actually changes: guest→user (real sign-in),
+      // user→null (sign-out), or user data updated.
+      if (
+        (event === "SIGNED_IN" && prevUserIdRef.current === null && newUserId !== null) ||
+        event === "SIGNED_OUT" ||
+        event === "USER_UPDATED"
+      ) {
+        setSessionVersion((v) => v + 1);
+      }
+
+      prevUserIdRef.current = newUserId;
+
       if (u) {
         setUser({ id: u.id, email: u.email ?? null });
         setHasPassword(computeHasPassword(u));
@@ -92,12 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setProfile(null);
         setHasPassword(false);
+        if (event === "SIGNED_OUT") {
+          router.push("/");
+        }
       }
-      // A different identity is now active: bump the version so every
-      // identity-scoped provider/component resets, and re-render Server
-      // Components under the new requester.
-      setSessionVersion((v) => v + 1);
-      router.refresh();
     });
 
     return () => {

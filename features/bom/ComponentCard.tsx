@@ -36,7 +36,7 @@ export function ComponentCard({
 }) {
   const { setQty } = useBom();
   const isOut = c.stock === StockStatus.OUT;
-  console.log(JSON.stringify(c));
+  // console.log(JSON.stringify(c));
   const [open, setOpen] = useState(false);
 
   return (

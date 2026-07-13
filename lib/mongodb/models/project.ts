@@ -58,6 +58,17 @@ const ProjectSpecsReportSchema = new Schema(
   { _id: false },
 );
 
+const ProjectAlertSchema = new Schema(
+  {
+    severity: { type: String, enum: ["warning", "info"], required: true },
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    componentId: { type: String },
+    partReference: { type: String },
+  },
+  { _id: false },
+);
+
 const ProjectSchema = new Schema(
   {
     _id: { type: String, required: true },
@@ -66,11 +77,17 @@ const ProjectSchema = new Schema(
     tag: { type: String, enum: Object.values(ProjectTagEnum), required: true },
     userId: { type: String, required: false, index: true },
     isPublic: { type: Boolean, default: false, index: true },
+    author: {
+      name: { type: String, default: "" },
+      email: { type: String, default: "" },
+      visible: { type: Boolean, default: false },
+    },
     components: { type: [ProjectComponentSchema], default: [] },
     nodes: { type: [ProjectNodeSchema], default: [] },
     edges: { type: [ProjectEdgeSchema], default: [] },
     substitutes: { type: [ProjectSubstituteSchema], default: [] },
     specsReport: { type: ProjectSpecsReportSchema, default: null },
+    alerts: { type: [ProjectAlertSchema], default: [] },
   },
   { _id: false, versionKey: false },
 );

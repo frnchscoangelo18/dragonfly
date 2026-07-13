@@ -68,6 +68,10 @@
 
 :root {
   --radius: 1rem;
+  /* Single source of truth for the app's mobile frame width. Both the
+     MobileShell and every modal (DialogContent) reference this so dialogs
+     never exceed the on-screen shell and stay edge-safe via a viewport gutter. */
+  --mobile-shell-width: 440px;
   /* Light theme — soft off-white with cool tint */
   --background: oklch(0.98 0.004 240);
   --foreground: oklch(0.22 0.02 240);

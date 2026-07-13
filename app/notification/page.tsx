@@ -87,8 +87,6 @@ export default function NotificationPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(!isGuest);
   const [expanded, setExpanded] = useState<Notification | null>(null);
-  const [now, setNow] = useState(() => Date.now());
-
   const load = useCallback(async (t: NotificationTab) => {
     setLoading(true);
     try {
@@ -106,15 +104,6 @@ export default function NotificationPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load(tab);
   }, [isGuest, tab, load]);
-
-  // Tick the clock so the Trash "permanently deleted in" countdown updates live.
-  useEffect(() => {
-    if (tab !== "trash") return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(id);
-  }, [tab]);
 
   const handleAction = async (
     notification: Notification,
@@ -290,26 +279,29 @@ export default function NotificationPage() {
                             <Trash2 size={16} />
                           </button>
                         )}
-                        {tab === "trash" && !n.actions.delete.permanent && (
-                          <button
-                            type="button"
-                            aria-label="Restore notification"
-                            onClick={() => handleUndelete(n)}
-                            className="ml-auto inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground ring-1 ring-white/5 transition-colors hover:bg-primary/10 hover:text-primary"
-                          >
-                            <RotateCcw size={16} />
-                          </button>
-                        )}
                       </div>
-                        {tab === "trash" &&
-                          (() => {
-                            const eta = trashEta(n.actions.delete.at, now);
-                            return eta ? (
-                            <p className="mt-2 text-xs text-muted-foreground">
-                              Permanently deleted in{" "}
-                              <span className="text-destructive">{eta}</span>
-                            </p>
-                          ) : null;
+                      {tab === "trash" &&
+                        (() => {
+                          const eta = trashEta(n.actions.delete.at, Date.now());
+                          if (!eta) return null;
+                          return (
+                            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+                              <span>
+                                Permanently deleted in{" "}
+                                <span className="text-destructive">{eta}</span>
+                              </span>
+                              {!n.actions.delete.permanent && (
+                                <button
+                                  type="button"
+                                  aria-label="Restore notification"
+                                  onClick={() => handleUndelete(n)}
+                                  className="inline-flex size-8 items-center justify-center rounded-lg ring-1 ring-white/5 transition-colors hover:bg-primary/10 hover:text-primary"
+                                >
+                                  <RotateCcw size={16} />
+                                </button>
+                              )}
+                            </div>
+                          );
                         })()}
                     </div>
                     {!n.actions.read.value &&

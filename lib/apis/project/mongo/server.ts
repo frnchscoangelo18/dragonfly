@@ -20,10 +20,37 @@ import {
   ComponentEdgeType,
 } from "../types";
 import { getRequester } from "@/lib/auth/requester";
+import { createServerClient } from "@/lib/supabase/server";
 
 // --- Helpers ---
 
 type ProjectMetaShape = ProjectMeta;
+
+const DEFAULT_AUTHOR = { name: "", email: "", visible: false };
+
+function normalizeAuthor(raw: unknown): { name: string; email: string; visible: boolean } {
+  if (!raw || typeof raw !== "object") return DEFAULT_AUTHOR;
+  const a = raw as Record<string, unknown>;
+  return {
+    name: (a.name as string) ?? (a.username as string) ?? "",
+    email: (a.email as string) ?? "",
+    visible: (a.visible as boolean) ?? false,
+  };
+}
+
+async function getProfileUsername(userId: string): Promise<string> {
+  try {
+    const supabase = await createServerClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+    return (data?.username as string | undefined) ?? "";
+  } catch {
+    return "";
+  }
+}
 
 export class ProjectAccessError extends Error {
   constructor() {
@@ -125,10 +152,26 @@ async function getJoinedComponents(
 export async function getAllProjects(): Promise<ProjectMetaShape[]> {
   await connectToDatabase();
   const filter = await listFilter();
+  const { id: requesterId } = await getRequester();
   const docs = await ProjectModel.find(filter)
     .sort({ time: -1 })
     .lean<ProjectDocument[]>();
-  return docs.map((d) => ({ id: d._id, name: d.name, time: d.time, tag: d.tag }));
+  return docs.map((d) => ({
+    id: d._id,
+    name: d.name,
+    time: d.time,
+    tag: d.tag,
+    isPublic: d.isPublic,
+    isOwner: d.userId != null && d.userId === requesterId,
+    author: normalizeAuthor(d.author),
+    alerts: (d.alerts ?? []).map((a) => ({
+      severity: a.severity as "warning" | "info",
+      title: a.title,
+      message: a.message,
+      componentId: a.componentId ?? undefined,
+      partReference: a.partReference ?? undefined,
+    })),
+  }));
 }
 
 export async function getProjectById(
@@ -137,7 +180,23 @@ export async function getProjectById(
   await connectToDatabase();
   const doc = await loadAccessibleProject(id, true);
   if (!doc) return undefined;
-  return { id: doc._id, name: doc.name, time: doc.time, tag: doc.tag };
+  const { id: requesterId } = await getRequester();
+  return {
+    id: doc._id,
+    name: doc.name,
+    time: doc.time,
+    tag: doc.tag,
+    isPublic: doc.isPublic,
+    isOwner: doc.userId != null && doc.userId === requesterId,
+    author: normalizeAuthor(doc.author),
+    alerts: (doc.alerts ?? []).map((a) => ({
+      severity: a.severity as "warning" | "info",
+      title: a.title,
+      message: a.message,
+      componentId: a.componentId ?? undefined,
+      partReference: a.partReference ?? undefined,
+    })),
+  };
 }
 
 export async function createProject(
@@ -145,6 +204,8 @@ export async function createProject(
 ): Promise<ProjectMetaShape> {
   await connectToDatabase();
   const { id: requesterId } = await getRequester();
+  const username = await getProfileUsername(requesterId);
+  const author = { name: username, email: "", visible: false };
   await ProjectModel.create({
     _id: project.id,
     name: project.name,
@@ -152,13 +213,73 @@ export async function createProject(
     tag: project.tag,
     userId: requesterId,
     isPublic: false,
+    author,
     components: [],
     nodes: [],
     edges: [],
     substitutes: [],
     specsReport: null,
+    alerts: project.alerts ?? [],
   });
-  return { id: project.id, name: project.name, time: project.time, tag: project.tag };
+  return {
+    id: project.id,
+    name: project.name,
+    time: project.time,
+    tag: project.tag,
+    isPublic: false,
+    isOwner: true,
+    author,
+    alerts: [],
+  };
+}
+
+/**
+ * Clone a project (components, nodes, edges, substitutes and the specs report)
+ * into a brand-new PRIVATE project owned by the current requester. Used so a
+ * viewer of a public project can get an editable copy without touching the
+ * original.
+ */
+export async function copyProject(
+  sourceId: string,
+  newName: string,
+  isPublic = false,
+): Promise<ProjectMetaShape> {
+  await connectToDatabase();
+  const source = await loadAccessibleProject(sourceId, true);
+  if (!source) throw new ProjectAccessError();
+
+  const { id: requesterId } = await getRequester();
+  const username = await getProfileUsername(requesterId);
+  const newId = `${requesterId}-${Date.now()}`;
+  const time = new Date().toISOString();
+  const author = { name: username, email: "", visible: false };
+
+  await ProjectModel.create({
+    _id: newId,
+    name: newName,
+    time,
+    tag: source.tag,
+    userId: requesterId,
+    isPublic,
+    author,
+    components: source.components,
+    nodes: source.nodes,
+    edges: source.edges,
+    substitutes: source.substitutes,
+    specsReport: source.specsReport,
+    alerts: source.alerts ?? [],
+  });
+
+  return {
+    id: newId,
+    name: newName,
+    time,
+    tag: source.tag,
+    isPublic: false,
+    isOwner: true,
+    author,
+    alerts: [],
+  };
 }
 
 export async function updateProject(
@@ -169,19 +290,39 @@ export async function updateProject(
   const doc = await loadAccessibleProject(id, true);
   if (!doc) return undefined;
 
+  const { id: requesterId } = await getRequester();
+  const isOwner = doc.userId != null && doc.userId === requesterId;
+
   const set: Record<string, unknown> = {};
   if ("name" in updated) set.name = updated.name;
   if ("time" in updated) set.time = updated.time;
   if ("tag" in updated) set.tag = updated.tag;
+  // Visibility + author fields can only be changed by the owner.
+  if ("isPublic" in updated && isOwner) set.isPublic = updated.isPublic;
+  if ("author" in updated && isOwner) {
+    if (updated.author?.name !== undefined) set["author.name"] = updated.author.name;
+    if (updated.author?.email !== undefined) set["author.email"] = updated.author.email;
+    if (updated.author?.visible !== undefined) set["author.visible"] = updated.author.visible;
+  }
 
   const updatedDoc = await ProjectModel.findByIdAndUpdate(id, { $set: set }, { new: true }).lean<ProjectDocument>();
   if (!updatedDoc) return undefined;
-  return { id: updatedDoc._id, name: updatedDoc.name, time: updatedDoc.time, tag: updatedDoc.tag };
+  return {
+    id: updatedDoc._id,
+    name: updatedDoc.name,
+    time: updatedDoc.time,
+    tag: updatedDoc.tag,
+    isPublic: updatedDoc.isPublic,
+    isOwner: updatedDoc.userId != null && updatedDoc.userId === requesterId,
+    author: normalizeAuthor(updatedDoc.author),
+  };
 }
 
 export async function deleteProject(id: string): Promise<boolean> {
   await connectToDatabase();
-  const doc = await loadAccessibleProject(id, true);
+  // Deletion requires ownership; non-owners (incl. viewers of public projects)
+  // must not be able to delete a project they don't own.
+  const doc = await loadAccessibleProject(id, false);
   if (!doc) return false;
   const result = await ProjectModel.deleteOne({ _id: id });
   return result.deletedCount === 1;
@@ -195,7 +336,7 @@ export async function createNodesBatch(
   await connectToDatabase();
   if (nodes.length === 0) return [];
   const projectId = nodes[0].projectId;
-  const doc = await loadAccessibleProject(projectId, true);
+  const doc = await loadAccessibleProject(projectId, false);
   if (!doc) throw new ProjectAccessError();
   const mapped = nodes.map((n) => ({
     id: n.id,
@@ -230,7 +371,7 @@ export async function createNode(
   projectId: string,
 ): Promise<ProjectNodeModel> {
   await connectToDatabase();
-  const doc = await loadAccessibleProject(projectId, true);
+  const doc = await loadAccessibleProject(projectId, false);
   if (!doc) throw new ProjectAccessError();
   const created: ProjectNodeModel = {
     id: node.id,
@@ -251,7 +392,7 @@ export async function updateNode(
   updated: Partial<ProjectNodeModel>,
 ): Promise<ProjectNodeModel | undefined> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("nodes", id, true);
+  const doc = await loadAccessibleBySubdoc("nodes", id, false);
   if (!doc) return undefined;
   const projectId = doc._id;
 
@@ -275,7 +416,7 @@ export async function updateNode(
 
 export async function deleteNode(id: string): Promise<boolean> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("nodes", id, true);
+  const doc = await loadAccessibleBySubdoc("nodes", id, false);
   if (!doc) return false;
   const projectId = doc._id;
   const result = await ProjectModel.updateOne(
@@ -293,7 +434,7 @@ export async function createEdgesBatch(
   await connectToDatabase();
   if (edges.length === 0) return [];
   const projectId = edges[0].projectId;
-  const doc = await loadAccessibleProject(projectId, true);
+  const doc = await loadAccessibleProject(projectId, false);
   if (!doc) throw new ProjectAccessError();
   const mapped = edges.map((e) => ({
     id: e.id,
@@ -334,7 +475,7 @@ export async function createEdge(
   projectId: string,
 ): Promise<ProjectEdgeModel> {
   await connectToDatabase();
-  const doc = await loadAccessibleProject(projectId, true);
+  const doc = await loadAccessibleProject(projectId, false);
   if (!doc) throw new ProjectAccessError();
   const created: ProjectEdgeModel = {
     id: edge.id,
@@ -370,7 +511,7 @@ export async function updateEdge(
   updated: Partial<ProjectEdgeModel>,
 ): Promise<ProjectEdgeModel | undefined> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("edges", id, true);
+  const doc = await loadAccessibleBySubdoc("edges", id, false);
   if (!doc) return undefined;
   const projectId = doc._id;
 
@@ -406,7 +547,7 @@ export async function updateEdge(
 
 export async function deleteEdge(id: string): Promise<boolean> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("edges", id, true);
+  const doc = await loadAccessibleBySubdoc("edges", id, false);
   if (!doc) return false;
   const projectId = doc._id;
   const result = await ProjectModel.updateOne(
@@ -436,7 +577,7 @@ export async function createSubstitute(
   substitute: ProjectSubstituteModel,
 ): Promise<ProjectSubstituteModel> {
   await connectToDatabase();
-  const doc = await loadAccessibleProject(substitute.projectId, true);
+  const doc = await loadAccessibleProject(substitute.projectId, false);
   if (!doc) throw new ProjectAccessError();
   await ProjectModel.updateOne(
     { _id: substitute.projectId },
@@ -472,7 +613,7 @@ export async function createReport(
   report: ProjectSpecsReportModel,
 ): Promise<ProjectSpecsReportModel> {
   await connectToDatabase();
-  const doc = await loadAccessibleProject(report.projectId, true);
+  const doc = await loadAccessibleProject(report.projectId, false);
   if (!doc) throw new ProjectAccessError();
   await ProjectModel.updateOne(
     { _id: report.projectId },
@@ -486,7 +627,7 @@ export async function updateReport(
   updated: Partial<ProjectSpecsReportModel>,
 ): Promise<ProjectSpecsReportModel | undefined> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("specsReport", id, true);
+  const doc = await loadAccessibleBySubdoc("specsReport", id, false);
   if (!doc) return undefined;
   const projectId = doc._id;
 
@@ -502,7 +643,7 @@ export async function updateReport(
 
 export async function deleteReport(id: string): Promise<boolean> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("specsReport", id, true);
+  const doc = await loadAccessibleBySubdoc("specsReport", id, false);
   if (!doc) return false;
   const projectId = doc._id;
   const result = await ProjectModel.updateOne(
@@ -529,7 +670,7 @@ export async function createComponentsBatch(
   await connectToDatabase();
   if (components.length === 0) return [];
   const projectId = components[0].projectId;
-  const doc = await loadAccessibleProject(projectId, true);
+  const doc = await loadAccessibleProject(projectId, false);
   if (!doc) throw new ProjectAccessError();
   const mapped = components.map((c) => ({
     id: c.id,
@@ -549,7 +690,7 @@ export async function createComponent(
   component: ProjectComponentModel,
 ): Promise<ProjectComponentModel> {
   await connectToDatabase();
-  const doc = await loadAccessibleProject(component.projectId, true);
+  const doc = await loadAccessibleProject(component.projectId, false);
   if (!doc) throw new ProjectAccessError();
   await ProjectModel.updateOne(
     { _id: component.projectId },
@@ -574,7 +715,7 @@ export async function updateComponent(
   updated: Partial<ProjectComponentModel>,
 ): Promise<ProjectComponentModel | undefined> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("components", id, true);
+  const doc = await loadAccessibleBySubdoc("components", id, false);
   if (!doc) return undefined;
   const projectId = doc._id;
 
@@ -596,7 +737,7 @@ export async function updateComponent(
 
 export async function deleteComponent(id: string): Promise<boolean> {
   await connectToDatabase();
-  const doc = await loadAccessibleBySubdoc("components", id, true);
+  const doc = await loadAccessibleBySubdoc("components", id, false);
   if (!doc) return false;
   const projectId = doc._id;
   const result = await ProjectModel.updateOne(
